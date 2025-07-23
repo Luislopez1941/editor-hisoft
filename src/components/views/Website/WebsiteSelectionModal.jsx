@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Palette, Layers, ArrowRight } from 'lucide-react';
 import './WebsiteSelectionModal.css';
+import { templates as templatesData } from '../../../data/templates';
 
 const WebsiteSelectionModal = ({ isOpen, onClose, onSelectOption }) => {
   const [selectedOption, setSelectedOption] = useState(null);
@@ -34,7 +35,12 @@ const WebsiteSelectionModal = ({ isOpen, onClose, onSelectOption }) => {
       onSelectOption('scratch', null);
     } else if (selectedOption) {
       const template = templates.find(t => t.id === selectedOption);
-      onSelectOption('template', template);
+      // Buscar la estructura real en templates.js
+      const fullTemplate = templatesData[selectedOption];
+      onSelectOption('template', {
+        ...template,
+        structure: fullTemplate ? fullTemplate.elements : null
+      });
     }
     onClose();
   };

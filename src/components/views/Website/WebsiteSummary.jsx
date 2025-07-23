@@ -1,59 +1,34 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Plus, Edit3 } from 'lucide-react';
+import { Settings, Info, ExternalLink, Edit3, Plus, Home, DollarSign, Package, Puzzle, Smartphone, Inbox, Users, Megaphone } from 'lucide-react';
 import WebsiteSelectionModal from './WebsiteSelectionModal';
-import './Website.css';
+import '../Dashboard/Dashboard.css';
 
-const Website = ({ onBack, onSwitchToEditor }) => {
+const WebsiteSummary = ({ onSwitchToEditor }) => {
   const [showWebsiteModal, setShowWebsiteModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [editorData, setEditorData] = useState(null);
 
-  const handleCreateNewWebsite = () => {
-    setShowWebsiteModal(true);
-  };
-
-  const handleEditWebsite = () => {
-    if (onSwitchToEditor) {
-      onSwitchToEditor('edit', null);
-    }
-  };
-
   const handleWebsiteSelection = (type, template) => {
     setSelectedTemplate(template);
-    // Si la plantilla tiene estructura, inicializar el editor con ella
     if (template && template.structure) {
       setEditorData(template.structure);
     } else {
-      setEditorData(null); // O estructura vacía
+      setEditorData(null);
     }
+    setShowWebsiteModal(false);
     if (onSwitchToEditor) {
       onSwitchToEditor(type, template);
     }
-    setShowWebsiteModal(false);
   };
 
   return (
-    <div className="website-view">
-      {/* Header */}
-      <div className="website-header">
-        <div className="header-left">
-          <button className="back-btn" onClick={onBack}>
-            <ArrowLeft size={16} />
-            Volver
-          </button>
-          <div className="title-section">
-            <h1>Resumen del sitio web</h1>
-            <p>Administra tu sitio web, el SEO, tus dominios y más.</p>
-          </div>
-        </div>
-        <div className="header-right">
-          <button className="create-site-btn" onClick={handleCreateNewWebsite}>
-            <Plus size={16} />
-            Crear nuevo sitio
-          </button>
-        </div>
+    <>
+      <div style={{display: 'flex', justifyContent: 'flex-end', marginBottom: 24}}>
+        <button className="create-site-btn" style={{display: 'inline-flex', background: '#3D85C6', color: 'white', fontWeight: 700, fontSize: 16, padding: '12px 24px', borderRadius: 8, alignItems: 'center', gap: 8, zIndex: 9999}} onClick={() => setShowWebsiteModal(true)}>
+          <Plus size={20} />
+          Crear nuevo sitio
+        </button>
       </div>
-
       {/* Site Summary Section */}
       <div className="site-summary">
         <div className="site-preview">
@@ -81,59 +56,51 @@ const Website = ({ onBack, onSwitchToEditor }) => {
             </div>
           </div>
           <div className="site-settings">
-            <Edit3 size={16} />
+            <Settings size={16} />
             <span>Ajustes del sitio</span>
           </div>
         </div>
       </div>
-
       {/* Performance Section */}
       <div className="performance-section">
         <div className="section-header">
           <h2>Rendimiento del sitio</h2>
           <p>
             Supervisa el rendimiento de tu sitio y garantiza una experiencia de usuario fluida para tus visitantes. 
-            Para conocer la velocidad y el tiempo de actividad de tu sitio, 
+            Para conocer la velocidad y el tiempo de actividad de tu sitio,
             <a href="#" className="link">publícalo en el Editor</a>.
           </p>
         </div>
-        
         <div className="performance-cards">
           <div className="performance-card">
             <div className="card-header">
               <h3>Supervisa la velocidad de tu sitio</h3>
+              <Info size={16} />
             </div>
-            <p>Una vez que tu sitio tenga suficiente tráfico, podrás comprobar su tiempo de carga y optimizarlo.</p>
-            <a href="#" className="card-link">Leer más</a>
+            <p>Una vez que tu sitio tenga suficiente tráfico, puedes comprobar su tiempo de carga y optimizarlo.</p>
+            <a href="#" className="card-link">
+              Leer más <ExternalLink size={16} />
+            </a>
           </div>
-
           <div className="performance-card">
             <div className="card-header">
               <h3>Monitorea el tiempo de actividad de tu sitio</h3>
+              <Info size={16} />
             </div>
             <p>Supervisa la disponibilidad de tu sitio publicado y descubre cómo Wix permite la continuidad operativa en todo momento.</p>
-            <a href="#" className="card-link">Leer más</a>
+            <a href="#" className="card-link">
+              Leer más <ExternalLink size={16} />
+            </a>
           </div>
         </div>
       </div>
-
-      {/* Website Selection Modal */}
-      <WebsiteSelectionModal 
+      <WebsiteSelectionModal
         isOpen={showWebsiteModal}
         onClose={() => setShowWebsiteModal(false)}
         onSelectOption={handleWebsiteSelection}
       />
-
-      {/* Aquí se inicializaría el editor con la plantilla seleccionada */}
-      {editorData && (
-        <div className="editor-preview">
-          {/* Aquí iría el renderizado real del editor con la estructura de la plantilla */}
-          <h3>Editor inicializado con la plantilla: {selectedTemplate?.name}</h3>
-          {/* Puedes renderizar secciones, layout, etc. usando editorData */}
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 
-export default Website; 
+export default WebsiteSummary; 

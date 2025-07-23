@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 
 import Dashboard from './components/views/Dashboard/Dashboard';
-import WebsiteManager from './components/views/Dashboard/WebsiteManager';
 import Sidebar from './components/Sidebar';
 import Toolbar from './components/Toolbar';
 import Canvas from './components/Canvas';
@@ -53,28 +52,30 @@ const CanvasContainer = styled.div`
 // Componente interno del editor que tiene acceso al contexto
 const EditorView = ({ selectedElement, setSelectedElement, isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
   return (
-    <AppContainer>
-      <Sidebar />
-      <MainContent>
-        <Toolbar 
-          isPreviewMode={isPreviewMode}
-          setIsPreviewMode={setIsPreviewMode}
-          onBackToDashboard={onBackToDashboard}
-        />
-        <CanvasContainer>
-          <Canvas 
-            isPreviewMode={isPreviewMode}
-            selectedElement={selectedElement}
-            setSelectedElement={setSelectedElement}
-          />
-          {!isPreviewMode && (
-            <PropertyPanel 
+    <AppContainer style={{ flexDirection: 'column' }}>
+      <Toolbar 
+        isPreviewMode={isPreviewMode}
+        setIsPreviewMode={setIsPreviewMode}
+        onBackToDashboard={onBackToDashboard}
+      />
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        <Sidebar />
+        <MainContent>
+          <CanvasContainer>
+            <Canvas 
+              isPreviewMode={isPreviewMode}
               selectedElement={selectedElement}
               setSelectedElement={setSelectedElement}
             />
-          )}
-        </CanvasContainer>
-      </MainContent>
+            {!isPreviewMode && (
+              <PropertyPanel 
+                selectedElement={selectedElement}
+                setSelectedElement={setSelectedElement}
+              />
+            )}
+          </CanvasContainer>
+        </MainContent>
+      </div>
     </AppContainer>
   );
 };
@@ -86,16 +87,11 @@ function App() {
 
   const handleSwitchToWebsiteManager = (type, template) => {
     if (type === 'edit') {
-      // Ir directamente al editor para editar
       setCurrentView('editor');
     } else if (type === 'website') {
-      // Mostrar WebsiteManager para elegir plantilla o empezar desde cero
       setCurrentView('website-manager');
     } else {
-      // Ir al editor con plantilla o vacío
       setCurrentView('editor');
-      
-      // Si se seleccionó una plantilla, cargarla
       if (type === 'template' && template) {
         setTimeout(() => {
           loadTemplate(template);

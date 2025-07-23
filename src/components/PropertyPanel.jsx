@@ -1,86 +1,96 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { 
-  Settings, 
   Type, 
   Palette, 
-  Layout, 
-  Image, 
-  Square, 
-  Trash2,
-  Copy,
-  Eye,
-  EyeOff
+  Move, 
+  Maximize2, 
+  AlignLeft, 
+  AlignCenter, 
+  AlignRight,
+  Bold,
+  Italic,
+  Underline
 } from 'lucide-react';
 import { useEditor } from '../context/EditorContext';
 
-const PropertyPanelContainer = styled.div`
-  width: 320px;
+const PanelContainer = styled.div`
+  width: 300px;
   background: #ffffff;
-  border-left: 1px solid #e1e5e9;
+  border-left: 1px solid #e5e7eb;
+  height: 100vh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 `;
 
-const PropertyPanelHeader = styled.div`
+const PanelHeader = styled.div`
   padding: 20px;
-  border-bottom: 1px solid #e1e5e9;
-  background: #f8f9fa;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #f8fafc, #e2e8f0);
 `;
 
-const PropertyPanelTitle = styled.h2`
-  margin: 0;
+const PanelTitle = styled.h3`
+  margin: 0 0 8px 0;
   font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  font-family: 'Inter', system-ui, sans-serif;
+`;
+
+const PanelSubtitle = styled.p`
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+  font-family: 'Inter', system-ui, sans-serif;
+`;
+
+const PanelContent = styled.div`
+  flex: 1;
+  padding: 20px;
+`;
+
+const PropertyGroup = styled.div`
+  margin-bottom: 24px;
+`;
+
+const GroupTitle = styled.h4`
+  margin: 0 0 12px 0;
+  font-size: 14px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: 'Inter', system-ui, sans-serif;
   display: flex;
   align-items: center;
   gap: 8px;
 `;
 
-const PropertyPanelContent = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-`;
-
-const PropertySection = styled.div`
-  margin-bottom: 24px;
-`;
-
-const PropertySectionTitle = styled.h3`
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+const PropertyRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
-`;
-
-const PropertyGroup = styled.div`
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 12px;
 `;
 
 const PropertyLabel = styled.label`
-  display: block;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  color: #374151;
-  margin-bottom: 4px;
+  color: #4b5563;
+  min-width: 80px;
+  font-family: 'Inter', system-ui, sans-serif;
 `;
 
 const PropertyInput = styled.input`
-  width: 100%;
+  flex: 1;
   padding: 8px 12px;
-  border: 1px solid #e1e5e9;
+  border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 14px;
+  font-family: 'Inter', system-ui, sans-serif;
   background: #ffffff;
-
+  
   &:focus {
     outline: none;
     border-color: #3b82f6;
@@ -89,30 +99,14 @@ const PropertyInput = styled.input`
 `;
 
 const PropertySelect = styled.select`
-  width: 100%;
+  flex: 1;
   padding: 8px 12px;
-  border: 1px solid #e1e5e9;
+  border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 14px;
+  font-family: 'Inter', system-ui, sans-serif;
   background: #ffffff;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-`;
-
-const PropertyTextarea = styled.textarea`
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #e1e5e9;
-  border-radius: 6px;
-  font-size: 14px;
-  background: #ffffff;
-  resize: vertical;
-  min-height: 80px;
-
+  
   &:focus {
     outline: none;
     border-color: #3b82f6;
@@ -121,50 +115,60 @@ const PropertyTextarea = styled.textarea`
 `;
 
 const ColorInput = styled.input`
-  width: 100%;
+  width: 40px;
   height: 40px;
-  border: 1px solid #e1e5e9;
-  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
   cursor: pointer;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
+  background: none;
+  
+  &::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+  
+  &::-webkit-color-swatch {
+    border: none;
+    border-radius: 6px;
   }
 `;
 
 const ButtonGroup = styled.div`
   display: flex;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 4px;
 `;
 
-const ActionButton = styled.button`
+const ToggleButton = styled.button`
+  padding: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: ${props => props.$active ? '#3b82f6' : '#ffffff'};
+  color: ${props => props.$active ? '#ffffff' : '#6b7280'};
+  cursor: pointer;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border: 1px solid #e1e5e9;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 14px;
-  font-weight: 500;
-
+  justify-content: center;
+  
   &:hover {
-    border-color: #3b82f6;
-    color: #3b82f6;
-    background: #f0f9ff;
+    background: ${props => props.$active ? '#2563eb' : '#f3f4f6'};
   }
+`;
 
-  &.danger {
-    &:hover {
-      border-color: #ef4444;
-      color: #ef4444;
-      background: #fef2f2;
-    }
+const RangeInput = styled.input`
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: #e5e7eb;
+  outline: none;
+  
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 `;
 
@@ -174,406 +178,349 @@ const EmptyState = styled.div`
   padding: 40px 20px;
 `;
 
-const EmptyStateIcon = styled.div`
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-`;
+const PropertyPanel = () => {
+  const { selectedElementId, elements, updateElement, findElementById } = useEditor();
+  const [properties, setProperties] = useState({});
 
-const EmptyStateText = styled.p`
-  font-size: 16px;
-  margin: 0 0 8px 0;
-`;
+  const selectedElement = findElementById(elements, selectedElementId);
 
-const EmptyStateSubtext = styled.p`
-  font-size: 14px;
-  margin: 0;
-  opacity: 0.7;
-`;
+  useEffect(() => {
+    if (selectedElement) {
+      setProperties({
+        // Posición y tamaño
+        x: selectedElement.position?.x || 50,
+        y: selectedElement.position?.y || 50,
+        width: parseInt(selectedElement.size?.width) || 200,
+        height: parseInt(selectedElement.size?.height) || 100,
+        
+        // Texto y tipografía
+        content: selectedElement.props?.content || '',
+        fontSize: parseInt(selectedElement.styles?.fontSize) || 16,
+        fontWeight: selectedElement.styles?.fontWeight || '400',
+        fontFamily: selectedElement.styles?.fontFamily || 'Inter',
+        textAlign: selectedElement.styles?.textAlign || 'left',
+        lineHeight: parseFloat(selectedElement.styles?.lineHeight) || 1.5,
+        
+        // Colores
+        color: selectedElement.styles?.color || '#000000',
+        background: selectedElement.styles?.background || 'transparent',
+        
+        // Espaciado
+        padding: selectedElement.styles?.padding || '16px',
+        margin: selectedElement.styles?.margin || '0',
+        
+        // Bordes
+        borderRadius: parseInt(selectedElement.styles?.borderRadius) || 0,
+        border: selectedElement.styles?.border || 'none',
+        
+        // Sombras
+        boxShadow: selectedElement.styles?.boxShadow || 'none',
+      });
+    }
+  }, [selectedElement]);
 
-const PropertyPanel = ({ selectedElement, setSelectedElement }) => {
-  const { elements, updateElement, deleteElement, selectedElementId } = useEditor();
-  const [activeTab, setActiveTab] = useState('content');
+  const updateProperty = (key, value) => {
+    setProperties(prev => ({ ...prev, [key]: value }));
+    
+    if (!selectedElement) return;
+    
+    const updates = {};
+    
+    // Actualizar posición
+    if (['x', 'y'].includes(key)) {
+      updates.position = {
+        ...selectedElement.position,
+        [key]: parseInt(value) || 0
+      };
+    }
+    
+    // Actualizar tamaño
+    if (['width', 'height'].includes(key)) {
+      updates.size = {
+        ...selectedElement.size,
+        [key]: `${parseInt(value) || 100}px`
+      };
+    }
+    
+    // Actualizar contenido
+    if (key === 'content') {
+      updates.props = {
+        ...selectedElement.props,
+        content: value
+      };
+    }
+    
+    // Actualizar estilos
+    if (['fontSize', 'fontWeight', 'fontFamily', 'textAlign', 'lineHeight', 'color', 'background', 'padding', 'margin', 'borderRadius', 'border', 'boxShadow'].includes(key)) {
+      let styleValue = value;
+      
+      // Agregar unidades automáticamente
+      if (['fontSize', 'borderRadius'].includes(key)) {
+        styleValue = `${parseInt(value) || 0}px`;
+      }
+      
+      updates.styles = {
+        ...selectedElement.styles,
+        [key]: styleValue
+      };
+    }
+    
+    updateElement(selectedElement.id, updates);
+  };
 
-  const element = elements.find(el => el.id === selectedElementId);
+  const toggleBold = () => {
+    const newWeight = (properties.fontWeight || '400') === '700' ? '400' : '700';
+    updateProperty('fontWeight', newWeight);
+  };
 
-  if (!element) {
+  if (!selectedElement) {
     return (
-      <PropertyPanelContainer>
-        <PropertyPanelHeader>
-          <PropertyPanelTitle>
-            <Settings size={20} />
-            Properties
-          </PropertyPanelTitle>
-        </PropertyPanelHeader>
-        <PropertyPanelContent>
-          <EmptyState>
-            <EmptyStateIcon>⚙️</EmptyStateIcon>
-            <EmptyStateText>No element selected</EmptyStateText>
-            <EmptyStateSubtext>
-              Select an element to edit its properties
-            </EmptyStateSubtext>
-          </EmptyState>
-        </PropertyPanelContent>
-      </PropertyPanelContainer>
+      <PanelContainer>
+        <PanelHeader>
+          <PanelTitle>Propiedades</PanelTitle>
+          <PanelSubtitle>Selecciona un elemento para editarlo</PanelSubtitle>
+        </PanelHeader>
+        <EmptyState>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎯</div>
+          <p>Haz clic en cualquier elemento del canvas para ver sus propiedades aquí</p>
+        </EmptyState>
+      </PanelContainer>
     );
   }
 
-  const handlePropertyChange = (property, value) => {
-    updateElement(element.id, {
-      props: {
-        ...element.props,
-        [property]: value
-      }
-    });
-  };
-
-  const handleStyleChange = (property, value) => {
-    updateElement(element.id, {
-      styles: {
-        ...element.styles,
-        [property]: value
-      }
-    });
-  };
-
-  const handleDelete = () => {
-    deleteElement(element.id);
-  };
-
-  const renderContentProperties = () => {
-    switch (element.type) {
-      case 'text':
-        return (
-          <PropertyGroup>
-            <PropertyLabel>Text Content</PropertyLabel>
-            <PropertyTextarea
-              value={element.props.content || ''}
-              onChange={(e) => handlePropertyChange('content', e.target.value)}
-              placeholder="Enter your text here..."
-            />
-          </PropertyGroup>
-        );
-      
-      case 'heading':
-        return (
-          <>
-            <PropertyGroup>
-              <PropertyLabel>Heading Level</PropertyLabel>
-              <PropertySelect
-                value={element.props.level || 1}
-                onChange={(e) => handlePropertyChange('level', parseInt(e.target.value))}
-              >
-                <option value={1}>H1 - Main Heading</option>
-                <option value={2}>H2 - Section Heading</option>
-                <option value={3}>H3 - Subsection Heading</option>
-                <option value={4}>H4 - Minor Heading</option>
-                <option value={5}>H5 - Small Heading</option>
-                <option value={6}>H6 - Tiny Heading</option>
-              </PropertySelect>
-            </PropertyGroup>
-            <PropertyGroup>
-              <PropertyLabel>Heading Text</PropertyLabel>
-              <PropertyInput
-                value={element.props.content || ''}
-                onChange={(e) => handlePropertyChange('content', e.target.value)}
-                placeholder="Enter heading text..."
-              />
-            </PropertyGroup>
-          </>
-        );
-      
-      case 'button':
-        return (
-          <>
-            <PropertyGroup>
-              <PropertyLabel>Button Text</PropertyLabel>
-              <PropertyInput
-                value={element.props.text || ''}
-                onChange={(e) => handlePropertyChange('text', e.target.value)}
-                placeholder="Enter button text..."
-              />
-            </PropertyGroup>
-            <PropertyGroup>
-              <PropertyLabel>Button Variant</PropertyLabel>
-              <PropertySelect
-                value={element.props.variant || 'primary'}
-                onChange={(e) => handlePropertyChange('variant', e.target.value)}
-              >
-                <option value="primary">Primary</option>
-                <option value="secondary">Secondary</option>
-                <option value="success">Success</option>
-                <option value="danger">Danger</option>
-                <option value="warning">Warning</option>
-              </PropertySelect>
-            </PropertyGroup>
-          </>
-        );
-      
-      case 'image':
-        return (
-          <>
-            <PropertyGroup>
-              <PropertyLabel>Image URL</PropertyLabel>
-              <PropertyInput
-                value={element.props.src || ''}
-                onChange={(e) => handlePropertyChange('src', e.target.value)}
-                placeholder="Enter image URL..."
-              />
-            </PropertyGroup>
-            <PropertyGroup>
-              <PropertyLabel>Alt Text</PropertyLabel>
-              <PropertyInput
-                value={element.props.alt || ''}
-                onChange={(e) => handlePropertyChange('alt', e.target.value)}
-                placeholder="Enter alt text..."
-              />
-            </PropertyGroup>
-          </>
-        );
-      
-      case 'card':
-        return (
-          <>
-            <PropertyGroup>
-              <PropertyLabel>Card Title</PropertyLabel>
-              <PropertyInput
-                value={element.props.title || ''}
-                onChange={(e) => handlePropertyChange('title', e.target.value)}
-                placeholder="Enter card title..."
-              />
-            </PropertyGroup>
-            <PropertyGroup>
-              <PropertyLabel>Card Content</PropertyLabel>
-              <PropertyTextarea
-                value={element.props.content || ''}
-                onChange={(e) => handlePropertyChange('content', e.target.value)}
-                placeholder="Enter card content..."
-              />
-            </PropertyGroup>
-            <PropertyGroup>
-              <PropertyLabel>Card Image URL</PropertyLabel>
-              <PropertyInput
-                value={element.props.image || ''}
-                onChange={(e) => handlePropertyChange('image', e.target.value)}
-                placeholder="Enter image URL..."
-              />
-            </PropertyGroup>
-          </>
-        );
-       
-      default:
-        return (
-          <PropertyGroup>
-            <PropertyLabel>Content</PropertyLabel>
-            <PropertyInput
-              value={element.props.content || ''}
-              onChange={(e) => handlePropertyChange('content', e.target.value)}
-              placeholder="Enter content..."
-            />
-          </PropertyGroup>
-        );
-    }
-  };
-
-  const renderStyleProperties = () => {
-    return (
-      <>
-        <PropertyGroup>
-          <PropertyLabel>Background Color</PropertyLabel>
-          <ColorInput
-            type="color"
-            value={element.styles?.background || '#ffffff'}
-            onChange={(e) => handleStyleChange('background', e.target.value)}
-          />
-        </PropertyGroup>
-        
-        <PropertyGroup>
-          <PropertyLabel>Text Color</PropertyLabel>
-          <ColorInput
-            type="color"
-            value={element.styles?.color || '#000000'}
-            onChange={(e) => handleStyleChange('color', e.target.value)}
-          />
-        </PropertyGroup>
-        
-        <PropertyGroup>
-          <PropertyLabel>Font Size</PropertyLabel>
-          <PropertyInput
-            type="text"
-            value={element.styles?.fontSize || '16px'}
-            onChange={(e) => handleStyleChange('fontSize', e.target.value)}
-            placeholder="e.g., 16px, 1.2em"
-          />
-        </PropertyGroup>
-        
-        <PropertyGroup>
-          <PropertyLabel>Font Weight</PropertyLabel>
-          <PropertySelect
-            value={element.styles?.fontWeight || 'normal'}
-            onChange={(e) => handleStyleChange('fontWeight', e.target.value)}
-          >
-            <option value="normal">Normal</option>
-            <option value="bold">Bold</option>
-            <option value="100">100 - Thin</option>
-            <option value="200">200 - Extra Light</option>
-            <option value="300">300 - Light</option>
-            <option value="400">400 - Regular</option>
-            <option value="500">500 - Medium</option>
-            <option value="600">600 - Semi Bold</option>
-            <option value="700">700 - Bold</option>
-            <option value="800">800 - Extra Bold</option>
-            <option value="900">900 - Black</option>
-          </PropertySelect>
-        </PropertyGroup>
-        
-        <PropertyGroup>
-          <PropertyLabel>Text Align</PropertyLabel>
-          <PropertySelect
-            value={element.styles?.textAlign || 'left'}
-            onChange={(e) => handleStyleChange('textAlign', e.target.value)}
-          >
-            <option value="left">Left</option>
-            <option value="center">Center</option>
-            <option value="right">Right</option>
-            <option value="justify">Justify</option>
-          </PropertySelect>
-        </PropertyGroup>
-        
-        <PropertyGroup>
-          <PropertyLabel>Border Radius</PropertyLabel>
-          <PropertyInput
-            type="text"
-            value={element.styles?.borderRadius || '0'}
-            onChange={(e) => handleStyleChange('borderRadius', e.target.value)}
-            placeholder="e.g., 4px, 50%"
-          />
-        </PropertyGroup>
-        
-        <PropertyGroup>
-          <PropertyLabel>Padding</PropertyLabel>
-          <PropertyInput
-            type="text"
-            value={element.styles?.padding || '0'}
-            onChange={(e) => handleStyleChange('padding', e.target.value)}
-            placeholder="e.g., 10px, 10px 20px"
-          />
-        </PropertyGroup>
-        
-        <PropertyGroup>
-          <PropertyLabel>Margin</PropertyLabel>
-          <PropertyInput
-            type="text"
-            value={element.styles?.margin || '0'}
-            onChange={(e) => handleStyleChange('margin', e.target.value)}
-            placeholder="e.g., 10px, 10px 20px"
-          />
-        </PropertyGroup>
-      </>
-    );
-  };
-
-  const renderLayoutProperties = () => {
-    return (
-      <>
-        <PropertyGroup>
-          <PropertyLabel>Width</PropertyLabel>
-          <PropertyInput
-            type="text"
-            value={element.size?.width || 'auto'}
-            onChange={(e) => updateElement(element.id, {
-              size: { ...element.size, width: e.target.value }
-            })}
-            placeholder="e.g., 200px, 50%, auto"
-          />
-        </PropertyGroup>
-        
-        <PropertyGroup>
-          <PropertyLabel>Height</PropertyLabel>
-          <PropertyInput
-            type="text"
-            value={element.size?.height || 'auto'}
-            onChange={(e) => updateElement(element.id, {
-              size: { ...element.size, height: e.target.value }
-            })}
-            placeholder="e.g., 100px, 50vh, auto"
-          />
-        </PropertyGroup>
-        
-        <PropertyGroup>
-          <PropertyLabel>Position X</PropertyLabel>
-          <PropertyInput
-            type="number"
-            value={element.position?.x || 0}
-            onChange={(e) => updateElement(element.id, {
-              position: { ...element.position, x: parseInt(e.target.value) || 0 }
-            })}
-          />
-        </PropertyGroup>
-        
-        <PropertyGroup>
-          <PropertyLabel>Position Y</PropertyLabel>
-          <PropertyInput
-            type="number"
-            value={element.position?.y || 0}
-            onChange={(e) => updateElement(element.id, {
-              position: { ...element.position, y: parseInt(e.target.value) || 0 }
-            })}
-          />
-        </PropertyGroup>
-      </>
-    );
-  };
-
   return (
-    <PropertyPanelContainer>
-      <PropertyPanelHeader>
-        <PropertyPanelTitle>
-          <Settings size={20} />
-          Properties
-        </PropertyPanelTitle>
-      </PropertyPanelHeader>
-      
-      <PropertyPanelContent>
-        <PropertySection>
-          <PropertySectionTitle>
-            <Type size={16} />
-            Content
-          </PropertySectionTitle>
-          {renderContentProperties()}
-        </PropertySection>
+    <PanelContainer>
+      <PanelHeader>
+        <PanelTitle>Propiedades</PanelTitle>
+        <PanelSubtitle>Editando: {selectedElement.type}</PanelSubtitle>
+      </PanelHeader>
 
-        <PropertySection>
-          <PropertySectionTitle>
+      <PanelContent>
+        {/* Posición y Tamaño */}
+        <PropertyGroup>
+          <GroupTitle>
+            <Move size={16} />
+            Posición y Tamaño
+          </GroupTitle>
+          
+          <PropertyRow>
+            <PropertyLabel>X:</PropertyLabel>
+            <PropertyInput
+              type="number"
+              value={properties.x || 0}
+              onChange={(e) => updateProperty('x', e.target.value)}
+            />
+            <PropertyLabel>Y:</PropertyLabel>
+            <PropertyInput
+              type="number"
+              value={properties.y || 0}
+              onChange={(e) => updateProperty('y', e.target.value)}
+            />
+          </PropertyRow>
+          
+          <PropertyRow>
+            <PropertyLabel>Ancho:</PropertyLabel>
+            <PropertyInput
+              type="number"
+              value={properties.width || 200}
+              onChange={(e) => updateProperty('width', e.target.value)}
+            />
+            <PropertyLabel>Alto:</PropertyLabel>
+            <PropertyInput
+              type="number"
+              value={properties.height || 100}
+              onChange={(e) => updateProperty('height', e.target.value)}
+            />
+          </PropertyRow>
+        </PropertyGroup>
+
+        {/* Contenido de Texto */}
+        {(selectedElement.type === 'text' || selectedElement.type === 'heading') && (
+          <PropertyGroup>
+            <GroupTitle>
+              <Type size={16} />
+              Contenido
+            </GroupTitle>
+            
+            <PropertyRow>
+              <PropertyLabel>Texto:</PropertyLabel>
+              <PropertyInput
+                type="text"
+                value={properties.content || ''}
+                onChange={(e) => updateProperty('content', e.target.value)}
+                placeholder="Escribe tu texto aquí..."
+              />
+            </PropertyRow>
+          </PropertyGroup>
+        )}
+
+        {/* Tipografía */}
+        {(selectedElement.type === 'text' || selectedElement.type === 'heading') && (
+          <PropertyGroup>
+            <GroupTitle>
+              <Type size={16} />
+              Tipografía
+            </GroupTitle>
+            
+            <PropertyRow>
+              <PropertyLabel>Tamaño:</PropertyLabel>
+              <PropertyInput
+                type="number"
+                value={properties.fontSize || 16}
+                onChange={(e) => updateProperty('fontSize', e.target.value)}
+              />
+              <span style={{ fontSize: '12px', color: '#6b7280' }}>px</span>
+            </PropertyRow>
+            
+            <PropertyRow>
+              <PropertyLabel>Fuente:</PropertyLabel>
+              <PropertySelect
+                value={properties.fontFamily || 'Inter'}
+                onChange={(e) => updateProperty('fontFamily', e.target.value)}
+              >
+                <option value="Inter">Inter</option>
+                <option value="Arial">Arial</option>
+                <option value="Helvetica">Helvetica</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Courier New">Courier New</option>
+              </PropertySelect>
+            </PropertyRow>
+            
+            <PropertyRow>
+              <PropertyLabel>Formato:</PropertyLabel>
+              <ButtonGroup>
+                <ToggleButton
+                  $active={(properties.fontWeight || '400') === '700'}
+                  onClick={toggleBold}
+                  title="Negrita"
+                >
+                  <Bold size={14} />
+                </ToggleButton>
+              </ButtonGroup>
+            </PropertyRow>
+            
+            <PropertyRow>
+              <PropertyLabel>Alineación:</PropertyLabel>
+              <ButtonGroup>
+                <ToggleButton
+                  $active={(properties.textAlign || 'left') === 'left'}
+                  onClick={() => updateProperty('textAlign', 'left')}
+                  title="Izquierda"
+                >
+                  <AlignLeft size={14} />
+                </ToggleButton>
+                <ToggleButton
+                  $active={(properties.textAlign || 'left') === 'center'}
+                  onClick={() => updateProperty('textAlign', 'center')}
+                  title="Centro"
+                >
+                  <AlignCenter size={14} />
+                </ToggleButton>
+                <ToggleButton
+                  $active={(properties.textAlign || 'left') === 'right'}
+                  onClick={() => updateProperty('textAlign', 'right')}
+                  title="Derecha"
+                >
+                  <AlignRight size={14} />
+                </ToggleButton>
+              </ButtonGroup>
+            </PropertyRow>
+            
+            <PropertyRow>
+              <PropertyLabel>Espaciado:</PropertyLabel>
+              <PropertyInput
+                type="range"
+                min="1"
+                max="3"
+                step="0.1"
+                value={properties.lineHeight || 1.5}
+                onChange={(e) => updateProperty('lineHeight', e.target.value)}
+              />
+              <span style={{ fontSize: '12px', color: '#6b7280', minWidth: '30px' }}>
+                {properties.lineHeight || 1.5}
+              </span>
+            </PropertyRow>
+          </PropertyGroup>
+        )}
+
+        {/* Colores */}
+        <PropertyGroup>
+          <GroupTitle>
             <Palette size={16} />
-            Styles
-          </PropertySectionTitle>
-          {renderStyleProperties()}
-        </PropertySection>
+            Colores
+          </GroupTitle>
+          
+          <PropertyRow>
+            <PropertyLabel>Texto:</PropertyLabel>
+            <ColorInput
+              type="color"
+              value={properties.color || '#000000'}
+              onChange={(e) => updateProperty('color', e.target.value)}
+            />
+            <PropertyInput
+              type="text"
+              value={properties.color || ''}
+              onChange={(e) => updateProperty('color', e.target.value)}
+              placeholder="#000000"
+            />
+          </PropertyRow>
+          
+          <PropertyRow>
+            <PropertyLabel>Fondo:</PropertyLabel>
+            <ColorInput
+              type="color"
+              value={properties.background && properties.background.startsWith('#') ? properties.background : '#ffffff'}
+              onChange={(e) => updateProperty('background', e.target.value)}
+            />
+            <PropertyInput
+              type="text"
+              value={properties.background || ''}
+              onChange={(e) => updateProperty('background', e.target.value)}
+              placeholder="transparent"
+            />
+          </PropertyRow>
+        </PropertyGroup>
 
-        <PropertySection>
-          <PropertySectionTitle>
-            <Layout size={16} />
-            Layout
-          </PropertySectionTitle>
-          {renderLayoutProperties()}
-        </PropertySection>
-
-        <PropertySection>
-          <PropertySectionTitle>Actions</PropertySectionTitle>
-          <ButtonGroup>
-            <ActionButton onClick={handleDelete} className="danger">
-              <Trash2 size={16} />
-              Delete
-            </ActionButton>
-            <ActionButton>
-              <Copy size={16} />
-              Duplicate
-            </ActionButton>
-          </ButtonGroup>
-        </PropertySection>
-      </PropertyPanelContent>
-    </PropertyPanelContainer>
+        {/* Espaciado y Bordes */}
+        <PropertyGroup>
+          <GroupTitle>
+            <Maximize2 size={16} />
+            Espaciado y Bordes
+          </GroupTitle>
+          
+          <PropertyRow>
+            <PropertyLabel>Padding:</PropertyLabel>
+            <PropertyInput
+              type="text"
+              value={properties.padding || ''}
+              onChange={(e) => updateProperty('padding', e.target.value)}
+              placeholder="16px"
+            />
+          </PropertyRow>
+          
+          <PropertyRow>
+            <PropertyLabel>Margin:</PropertyLabel>
+            <PropertyInput
+              type="text"
+              value={properties.margin || ''}
+              onChange={(e) => updateProperty('margin', e.target.value)}
+              placeholder="0"
+            />
+          </PropertyRow>
+          
+          <PropertyRow>
+            <PropertyLabel>Borde:</PropertyLabel>
+            <PropertyInput
+              type="number"
+              value={properties.borderRadius || 0}
+              onChange={(e) => updateProperty('borderRadius', e.target.value)}
+            />
+            <span style={{ fontSize: '12px', color: '#6b7280' }}>px</span>
+          </PropertyRow>
+        </PropertyGroup>
+      </PanelContent>
+    </PanelContainer>
   );
 };
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { 
   Undo, 
@@ -28,30 +28,74 @@ import {
   Palette,
   ArrowLeft,
   Move,
-  Edit3
+  Edit3,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { useEditor } from '../context/EditorContext';
 
 const ToolbarContainer = styled.div`
-  height: 60px;
-  background: #ffffff;
-  border-bottom: 1px solid #e1e5e9;
+  height: 64px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1px solid #e5e7eb;
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  gap: 16px;
+  padding: 0 24px;
+  gap: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 100;
 `;
 
 const ToolbarSection = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 12px;
-  border-right: 1px solid #e1e5e9;
-  height: 40px;
+  padding: 8px 0;
+  
+  &:not(:last-child) {
+    border-right: 1px solid #e5e7eb;
+    padding-right: 20px;
+    margin-right: 12px;
+  }
+`;
 
-  &:last-child {
-    border-right: none;
+const LogoSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: 20px;
+`;
+
+const Logo = styled.div`
+  font-size: 24px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Inter', system-ui, sans-serif;
+`;
+
+const BackButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', system-ui, sans-serif;
+  
+  &:hover {
+    background: #e5e7eb;
+    color: #111827;
+    transform: translateY(-1px);
   }
 `;
 
@@ -59,401 +103,383 @@ const ToolbarButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid #e1e5e9;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #6b7280;
+  width: 40px;
+  height: 40px;
+  background: ${props => props.$active ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : '#ffffff'};
+  color: ${props => props.$active ? '#ffffff' : '#6b7280'};
+  border: 1px solid ${props => props.$active ? '#3b82f6' : '#e5e7eb'};
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 14px;
-
+  font-size: 16px;
+  position: relative;
+  box-shadow: ${props => props.$active ? '0 4px 12px rgba(59, 130, 246, 0.25)' : '0 1px 3px rgba(0, 0, 0, 0.1)'};
+  
   &:hover {
-    border-color: #3b82f6;
-    color: #3b82f6;
-    background: #f0f9ff;
+    background: ${props => props.$active ? 'linear-gradient(135deg, #2563eb, #1e40af)' : '#f9fafb'};
+    color: ${props => props.$active ? '#ffffff' : '#374151'};
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
-
-  &:active {
-    transform: translateY(1px);
-  }
-
+  
   &:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
-  }
-
-  &.active {
-    background: #3b82f6;
-    color: #ffffff;
-    border-color: #3b82f6;
-  }
-`;
-
-const ToolbarButtonText = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border: 1px solid #e1e5e9;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 14px;
-  font-weight: 500;
-
-  &:hover {
-    border-color: #3b82f6;
-    color: #3b82f6;
-    background: #f0f9ff;
-  }
-
-  &:active {
-    transform: translateY(1px);
+    transform: none;
+    
+    &:hover {
+      transform: none;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
   }
 `;
 
-const ZoomControl = styled.div`
+const DropdownButton = styled.button`
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 8px 16px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+  height: 40px;
+  font-family: 'Inter', system-ui, sans-serif;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  
+  &:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const DropdownMenu = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  padding: 8px;
+  min-width: 160px;
+  z-index: 1000;
+  margin-top: 4px;
+`;
+
+const DropdownItem = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: #374151;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  font-family: 'Inter', system-ui, sans-serif;
+  
+  &:hover {
+    background: #f3f4f6;
+    color: #111827;
+  }
+  
+  &.active {
+    background: #eff6ff;
+    color: #3b82f6;
+  }
 `;
 
 const ZoomInput = styled.input`
   width: 60px;
   padding: 6px 8px;
-  border: 1px solid #e1e5e9;
-  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
   text-align: center;
   font-size: 14px;
-
+  font-weight: 500;
+  background: #ffffff;
+  color: #374151;
+  font-family: 'Inter', system-ui, sans-serif;
+  
   &:focus {
     outline: none;
     border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
 `;
 
-const DeviceSelector = styled.div`
+const ModeToggle = styled.button`
   display: flex;
   align-items: center;
-  gap: 4px;
-`;
-
-const DeviceButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #e1e5e9;
-  border-radius: 4px;
-  background: #ffffff;
-  color: #6b7280;
+  gap: 8px;
+  padding: 8px 16px;
+  background: ${props => props.$active ? 'linear-gradient(135deg, #10b981, #047857)' : '#ffffff'};
+  color: ${props => props.$active ? '#ffffff' : '#374151'};
+  border: 1px solid ${props => props.$active ? '#10b981' : '#e5e7eb'};
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
-
+  font-size: 14px;
+  font-weight: 500;
+  height: 40px;
+  font-family: 'Inter', system-ui, sans-serif;
+  box-shadow: ${props => props.$active ? '0 4px 12px rgba(16, 185, 129, 0.25)' : '0 1px 3px rgba(0, 0, 0, 0.1)'};
+  
   &:hover {
-    border-color: #3b82f6;
-    color: #3b82f6;
+    background: ${props => props.$active ? 'linear-gradient(135deg, #059669, #065f46)' : '#f9fafb'};
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
+`;
 
-  &.active {
-    background: #3b82f6;
-    color: #ffffff;
-    border-color: #3b82f6;
+const SaveButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 600;
+  height: 40px;
+  font-family: 'Inter', system-ui, sans-serif;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  
+  &:hover {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
   }
+`;
+
+const Separator = styled.div`
+  width: 1px;
+  height: 24px;
+  background: #e5e7eb;
+  margin: 0 4px;
 `;
 
 const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
   const { 
-    undo, 
-    redo, 
     zoom, 
     setZoom, 
-    elements, 
+    undo, 
+    redo, 
+    history, 
+    historyIndex,
+    canvasWidth,
+    canvasHeight,
+    setCanvasSize,
     selectedElementId,
-    deleteElement 
+    elements
   } = useEditor();
 
-  const handleZoomChange = (e) => {
-    const value = parseInt(e.target.value);
-    if (value >= 25 && value <= 200) {
-      setZoom(value);
-    }
+  // Estados para dropdowns
+  const [deviceDropdownOpen, setDeviceDropdownOpen] = useState(false);
+  const [cursoMode, setCursoMode] = useState(false);
+
+  // Canvas sizes presets
+  const canvasSizes = {
+    desktop: { width: 1200, height: 800, icon: Monitor, label: 'Desktop' },
+    tablet: { width: 768, height: 1024, icon: Tablet, label: 'Tablet' },
+    mobile: { width: 375, height: 667, icon: Smartphone, label: 'Mobile' }
   };
 
-  const handleZoomIn = () => {
-    setZoom(Math.min(zoom + 25, 200));
+  const currentSize = Object.entries(canvasSizes).find(
+    ([key, size]) => size.width === canvasWidth && size.height === canvasHeight
+  );
+
+  const handleZoomChange = (newZoom) => {
+    const clampedZoom = Math.max(25, Math.min(200, newZoom));
+    setZoom(clampedZoom);
   };
 
-  const handleZoomOut = () => {
-    setZoom(Math.max(zoom - 25, 25));
-  };
-
-  const handleResetZoom = () => {
-    setZoom(100);
+  const handleCanvasSizeChange = (sizeKey) => {
+    const size = canvasSizes[sizeKey];
+    setCanvasSize(size.width, size.height);
+    setDeviceDropdownOpen(false);
   };
 
   const handleSave = () => {
-    const projectData = {
-      elements,
-      canvasWidth: 1200,
-      canvasHeight: 800,
-      zoom,
-      timestamp: new Date().toISOString()
-    };
-    
-    const blob = new Blob([JSON.stringify(projectData, null, 2)], {
-      type: 'application/json'
-    });
-    
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'web-editor-project.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    // Implementar guardar
+    console.log('Guardando proyecto...');
   };
 
   const handleExport = () => {
-    // Generate HTML code
-    const htmlCode = generateHTML();
-    const blob = new Blob([htmlCode], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'index.html';
-    a.click();
-    URL.revokeObjectURL(url);
+    // Implementar exportar
+    console.log('Exportando proyecto...');
   };
 
-  const generateHTML = () => {
-    const generateElementHTML = (element) => {
-      switch (element.type) {
-        case 'text':
-          return `<p style="${generateStyles(element.styles)}">${element.props.content}</p>`;
-        case 'heading':
-          return `<h${element.props.level} style="${generateStyles(element.styles)}">${element.props.content}</h${element.props.level}>`;
-        case 'button':
-          return `<button style="${generateStyles(element.styles)}">${element.props.text}</button>`;
-        case 'image':
-          return `<img src="${element.props.src}" alt="${element.props.alt}" style="${generateStyles(element.styles)}" />`;
-        case 'section':
-          return `<section style="${generateStyles(element.styles)}">${element.children?.map(child => generateElementHTML(child)).join('') || ''}</section>`;
-        case 'container':
-          return `<div style="${generateStyles(element.styles)}">${element.children?.map(child => generateElementHTML(child)).join('') || ''}</div>`;
-        case 'card':
-          return `<div style="${generateStyles(element.styles)}">
-            ${element.props.image ? `<img src="${element.props.image}" alt="Card" style="width: 100%; height: 200px; object-fit: cover;" />` : ''}
-            <div style="padding: 16px;">
-              <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600;">${element.props.title}</h3>
-              <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #6b7280;">${element.props.content}</p>
-            </div>
-          </div>`;
-        default:
-          return `<div style="${generateStyles(element.styles)}">${element.props.content || element.type}</div>`;
-      }
-    };
-
-    const generateStyles = (styles) => {
-      return Object.entries(styles || {})
-        .map(([key, value]) => `${key}: ${value}`)
-        .join('; ');
-    };
-
-    const html = `
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Editor Project</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        ${elements.map(element => generateElementHTML(element)).join('')}
-    </div>
-</body>
-</html>`;
-
-    return html;
-  };
+  const selectedElement = elements.find(el => el.id === selectedElementId);
 
   return (
     <ToolbarContainer>
-      {/* Back to Dashboard */}
-      {onBackToDashboard && (
+      {/* Logo y navegación */}
+      <LogoSection>
+        <Logo>HiPlot</Logo>
+        <BackButton onClick={onBackToDashboard}>
+          <ArrowLeft size={16} />
+          Volver al Dashboard
+        </BackButton>
+      </LogoSection>
+
+      {/* Herramientas de edición */}
+      <ToolbarSection>
+        <ToolbarButton 
+          onClick={undo} 
+          disabled={historyIndex <= 0}
+          title="Deshacer (Ctrl+Z)"
+        >
+          <Undo size={18} />
+        </ToolbarButton>
+        <ToolbarButton 
+          onClick={redo} 
+          disabled={historyIndex >= history.length - 1}
+          title="Rehacer (Ctrl+Y)"
+        >
+          <Redo size={18} />
+        </ToolbarButton>
+      </ToolbarSection>
+
+      {/* Zoom y vista */}
+      <ToolbarSection>
+        <ToolbarButton 
+          onClick={() => handleZoomChange(zoom - 10)}
+          disabled={zoom <= 25}
+          title="Reducir zoom"
+        >
+          <ZoomOut size={18} />
+        </ToolbarButton>
+        <ZoomInput
+          type="number"
+          value={zoom}
+          onChange={(e) => handleZoomChange(parseInt(e.target.value) || 100)}
+          min="25"
+          max="200"
+        />
+        <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: '500' }}>%</span>
+        <ToolbarButton 
+          onClick={() => handleZoomChange(zoom + 10)}
+          disabled={zoom >= 200}
+          title="Aumentar zoom"
+        >
+          <ZoomIn size={18} />
+        </ToolbarButton>
+      </ToolbarSection>
+
+      {/* Tamaño del canvas */}
+      <ToolbarSection>
+        <div style={{ position: 'relative' }}>
+          <DropdownButton 
+            onClick={() => setDeviceDropdownOpen(!deviceDropdownOpen)}
+          >
+            {currentSize ? (
+              <>
+                {React.createElement(currentSize[1].icon, { size: 16 })}
+                {currentSize[1].label}
+              </>
+            ) : (
+              <>
+                <Monitor size={16} />
+                Personalizado
+              </>
+            )}
+          </DropdownButton>
+          
+          {deviceDropdownOpen && (
+            <DropdownMenu>
+              {Object.entries(canvasSizes).map(([key, size]) => (
+                                 <DropdownItem
+                   key={key}
+                   onClick={() => handleCanvasSizeChange(key)}
+                   className={currentSize && currentSize[0] === key ? 'active' : ''}
+                 >
+                   {React.createElement(size.icon, { size: 16 })}
+                   {size.label}
+                   <span style={{ fontSize: '12px', opacity: 0.7 }}>
+                     {size.width}×{size.height}
+                   </span>
+                 </DropdownItem>
+              ))}
+            </DropdownMenu>
+          )}
+        </div>
+      </ToolbarSection>
+
+      {/* Modo curso */}
+      <ToolbarSection>
+        <ModeToggle
+          $active={cursoMode}
+          onClick={() => setCursoMode(!cursoMode)}
+          title="Modo Curso - Oculta herramientas avanzadas"
+        >
+          {cursoMode ? <Eye size={16} /> : <EyeOff size={16} />}
+          Modo Curso
+        </ModeToggle>
+      </ToolbarSection>
+
+      {/* Elemento seleccionado */}
+      {selectedElement && (
         <ToolbarSection>
-          <ToolbarButtonText onClick={onBackToDashboard}>
-            <ArrowLeft size={16} />
-            Dashboard
-          </ToolbarButtonText>
+          <span style={{ 
+            fontSize: '14px', 
+            color: '#6b7280', 
+            fontWeight: '500',
+            fontFamily: 'Inter, system-ui, sans-serif'
+          }}>
+            Seleccionado: 
+          </span>
+          <span style={{ 
+            fontSize: '14px', 
+            color: '#374151', 
+            fontWeight: '600',
+            fontFamily: 'Inter, system-ui, sans-serif'
+          }}>
+            {selectedElement.type}
+          </span>
         </ToolbarSection>
       )}
 
-      {/* File Operations */}
-      <ToolbarSection>
-        <ToolbarButtonText onClick={handleSave}>
-          <Save size={16} />
-          Save
-        </ToolbarButtonText>
-        <ToolbarButtonText onClick={handleExport}>
-          <Download size={16} />
-          Export
-        </ToolbarButtonText>
-      </ToolbarSection>
+      {/* Spacer */}
+      <div style={{ flex: 1 }} />
 
-      {/* Edit Operations */}
+      {/* Acciones principales */}
       <ToolbarSection>
-        <ToolbarButton onClick={undo} title="Undo (Ctrl+Z)">
-          <Undo size={16} />
-        </ToolbarButton>
-        <ToolbarButton onClick={redo} title="Redo (Ctrl+Y)">
-          <Redo size={16} />
-        </ToolbarButton>
-      </ToolbarSection>
-
-      {/* Element Operations */}
-      <ToolbarSection>
-        <ToolbarButton title="Mover elemento">
-          <Move size={16} />
-        </ToolbarButton>
-        <ToolbarButton title="Editar contenedor">
-          <Edit3 size={16} />
-        </ToolbarButton>
-        {selectedElementId && (
-          <ToolbarButton 
-            onClick={() => deleteElement(selectedElementId)} 
-            title="Eliminar elemento"
-            style={{ color: '#ef4444' }}
-          >
-            <Trash2 size={16} />
-          </ToolbarButton>
-        )}
-      </ToolbarSection>
-
-      {/* Text Formatting */}
-      <ToolbarSection>
-        <ToolbarButton title="Bold (Ctrl+B)">
-          <Bold size={16} />
-        </ToolbarButton>
-        <ToolbarButton title="Italic (Ctrl+I)">
-          <Italic size={16} />
-        </ToolbarButton>
-        <ToolbarButton title="Underline (Ctrl+U)">
-          <Underline size={16} />
-        </ToolbarButton>
-        <ToolbarButton title="Add Link">
-          <Link size={16} />
-        </ToolbarButton>
-      </ToolbarSection>
-
-      {/* Alignment */}
-      <ToolbarSection>
-        <ToolbarButton title="Align Left">
-          <AlignLeft size={16} />
-        </ToolbarButton>
-        <ToolbarButton title="Align Center">
-          <AlignCenter size={16} />
-        </ToolbarButton>
-        <ToolbarButton title="Align Right">
-          <AlignRight size={16} />
-        </ToolbarButton>
-      </ToolbarSection>
-
-      {/* Element Operations */}
-      <ToolbarSection>
-        <ToolbarButton title="Copy (Ctrl+C)">
-          <Copy size={16} />
-        </ToolbarButton>
-        <ToolbarButton title="Cut (Ctrl+X)">
-          <Scissors size={16} />
-        </ToolbarButton>
-        <ToolbarButton 
-          onClick={() => selectedElementId && deleteElement(selectedElementId)}
-          disabled={!selectedElementId}
-          title="Delete (Del)"
-        >
-          <Trash2 size={16} />
-        </ToolbarButton>
-      </ToolbarSection>
-
-      {/* Zoom Controls */}
-      <ToolbarSection>
-        <ZoomControl>
-          <ToolbarButton onClick={handleZoomOut} title="Zoom Out">
-            <ZoomOut size={16} />
-          </ToolbarButton>
-          <ZoomInput
-            type="number"
-            value={zoom}
-            onChange={handleZoomChange}
-            min="25"
-            max="200"
-            step="25"
-          />
-          <span style={{ fontSize: '12px', color: '#6b7280' }}>%</span>
-          <ToolbarButton onClick={handleZoomIn} title="Zoom In">
-            <ZoomIn size={16} />
-          </ToolbarButton>
-          <ToolbarButton onClick={handleResetZoom} title="Reset Zoom">
-            <RotateCcw size={16} />
-          </ToolbarButton>
-        </ZoomControl>
-      </ToolbarSection>
-
-      {/* Device Preview */}
-      <ToolbarSection>
-        <DeviceSelector>
-          <DeviceButton title="Desktop View">
-            <Monitor size={16} />
-          </DeviceButton>
-          <DeviceButton title="Tablet View">
-            <Tablet size={16} />
-          </DeviceButton>
-          <DeviceButton title="Mobile View">
-            <Smartphone size={16} />
-          </DeviceButton>
-        </DeviceSelector>
-      </ToolbarSection>
-
-      {/* Preview Mode */}
-      <ToolbarSection>
-        <ToolbarButton
+        <ModeToggle
+          $active={isPreviewMode}
           onClick={() => setIsPreviewMode(!isPreviewMode)}
-          className={isPreviewMode ? 'active' : ''}
-          title={isPreviewMode ? 'Exit Preview' : 'Preview'}
         >
-          {isPreviewMode ? <EyeOff size={16} /> : <Eye size={16} />}
+          {isPreviewMode ? <Edit3 size={16} /> : <Eye size={16} />}
+          {isPreviewMode ? 'Editar' : 'Vista previa'}
+        </ModeToggle>
+        
+        <ToolbarButton 
+          onClick={handleExport}
+          title="Exportar proyecto"
+        >
+          <Download size={18} />
         </ToolbarButton>
-      </ToolbarSection>
-
-      {/* Settings */}
-      <ToolbarSection>
-        <ToolbarButton title="Settings">
-          <Settings size={16} />
-        </ToolbarButton>
-        <ToolbarButton title="Layers">
-          <Layers size={16} />
-        </ToolbarButton>
-        <ToolbarButton title="Color Palette">
-          <Palette size={16} />
-        </ToolbarButton>
+        
+        <SaveButton onClick={handleSave}>
+          <Save size={16} />
+          Guardar
+        </SaveButton>
       </ToolbarSection>
     </ToolbarContainer>
   );
