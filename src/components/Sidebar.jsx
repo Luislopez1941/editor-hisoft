@@ -19,7 +19,9 @@ import {
   Database,
   Sparkles,
   Zap,
-  Star
+  Star,
+  ChevronLeft, ChevronRight,
+  Upload
 } from 'lucide-react';
 import { useEditor } from '../context/EditorContext';
 
@@ -382,7 +384,49 @@ const SectionTag = styled.span`
 const Sidebar = () => {
   const [activeTab, setActiveTab] = useState('elements');
   const [activeCategory, setActiveCategory] = useState('text');
+  const [submenusCollapsed, setSubmenusCollapsed] = useState(false);
   const { addElement } = useEditor();
+
+  // Handler para subir SVG desde el sidebar
+  const handleUploadSVG = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.svg';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file && file.type === 'image/svg+xml') {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          let text = ev.target.result;
+          // Procesar SVG: quitar width/height y reemplazar fill/stroke por currentColor
+          if (typeof text === 'string') {
+            // Extraer solo el contenido SVG si viene como dataURL
+            if (text.startsWith('data:image/svg+xml')) {
+              text = atob(text.split(',')[1]);
+            }
+            // Quitar width/height del tag <svg ...>
+            text = text.replace(/(width|height)="[^"]*"/gi, '');
+            // Reemplazar fill y stroke por currentColor
+            text = text.replace(/fill="(?!none)[^"]*"/gi, 'fill="currentColor"');
+            text = text.replace(/stroke="(?!none)[^"]*"/gi, 'stroke="currentColor"');
+            // Volver a codificar como dataURL
+            const base64 = btoa(text);
+            const dataUrl = 'data:image/svg+xml;base64,' + base64;
+            addElement(
+              'image',
+              { src: dataUrl, alt: file.name.replace(/\.[^/.]+$/, ''), name: file.name },
+              [],
+              { svgColor: '#000000' },
+              { x: 200, y: 200 },
+              { width: '40px', height: '40px' }
+            );
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+    input.click();
+  };
 
   // Configuración de tabs principales
   const mainTabs = [
@@ -444,6 +488,16 @@ const Sidebar = () => {
       ]
     }
   ];
+
+  const headerCategory = {
+    group: 'Especial',
+    icon: <Settings size={14} />, // Puedes cambiar el ícono si prefieres otro
+    items: [
+      { id: 'header', icon: Settings, name: 'Header', description: 'Cabecera fija y configurable' }
+    ]
+  };
+
+  const allCategories = [headerCategory, ...elementCategories];
 
   // Secciones predefinidas
   const predefinedSections = [
@@ -674,6 +728,13 @@ const Sidebar = () => {
           description: 'Acción secundaria', 
           props: { text: 'Botón Secundario', variant: 'secondary' },
           styles: { padding: '10px 20px', fontSize: '14px' }
+        },
+        { 
+          type: 'button', 
+          name: 'Botón de ventas', 
+          description: 'Redirige a la sección de ventas', 
+          props: { text: 'Ir a Ventas', variant: 'primary', onClick: () => setActiveCategory('sales') },
+          styles: { padding: '12px 24px', fontSize: '16px' }
         }
       ],
       container: [
@@ -859,7 +920,7 @@ const Sidebar = () => {
           </CategorySubtitle>
         </CategoryHeader>
         <CategoryList>
-          {elementCategories.map((group) => (
+          {allCategories.map((group) => (
             <CategoryGroup key={group.group}>
               <CategoryGroupTitle>
                 {group.icon}
@@ -886,11 +947,10 @@ const Sidebar = () => {
           ))}
         </CategoryList>
       </CategoryPanel>
-      
       <ElementPanel>
         <ElementHeader>
           <ElementTitle>
-            {elementCategories
+            {allCategories
               .flatMap(g => g.items)
               .find(item => item.id === activeCategory)?.name || 'Elementos'}
           </ElementTitle>
@@ -898,6 +958,29 @@ const Sidebar = () => {
             Haz clic o arrastra para añadir
           </ElementSubtitle>
         </ElementHeader>
+        {activeCategory === 'image' && (
+          <div style={{ padding: '0 20px 16px 20px', display: 'flex', alignItems: 'center' }}>
+            <button
+              onClick={handleUploadSVG}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                background: '#f3f4f6',
+                border: '1px solid #d1d5db',
+                borderRadius: 8,
+                padding: '8px 16px',
+                color: '#374151',
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: 'pointer',
+                marginBottom: 8
+              }}
+            >
+              <Upload size={18} /> Subir SVG
+            </button>
+          </div>
+        )}
         <ElementGrid>
           {getElementsForCategory(activeCategory).map((element, index) => (
             <ElementCard
@@ -907,11 +990,11 @@ const Sidebar = () => {
               onClick={() => handleElementClick(element)}
             >
               <ElementIcon>
-                {elementCategories
+                {allCategories
                   .flatMap(g => g.items)
                   .find(item => item.id === activeCategory)?.icon && 
                   React.createElement(
-                    elementCategories
+                    allCategories
                       .flatMap(g => g.items)
                       .find(item => item.id === activeCategory).icon,
                     { size: 20 }
@@ -1021,11 +1104,134 @@ const Sidebar = () => {
             <tab.icon size={22} />
           </MainIcon>
         ))}
+        {/* Botón flotante para ocultar/mostrar submenús */}
+        <button
+          onClick={() => setSubmenusCollapsed(c => !c)}
+          style={{
+            position: 'absolute',
+            top: 16,
+            right: -18,
+            zIndex: 100,
+            background: '#fff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '50%',
+            width: 32,
+            height: 32,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            cursor: 'pointer',
+            padding: 0
+          }}
+          title={submenusCollapsed ? 'Mostrar paneles' : 'Ocultar paneles'}
+        >
+          {submenusCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </button>
       </MainIconBar>
-      
-      {activeTab === 'elements' && renderElementsTab()}
-      {activeTab === 'sections' && renderSectionsTab()}
-      {activeTab === 'templates' && renderTemplatesTab()}
+      {!submenusCollapsed && activeTab === 'elements' && (
+        <>
+          <CategoryPanel>
+            <CategoryHeader>
+              <CategoryTitle>
+                <Plus size={20} />
+                Elementos
+              </CategoryTitle>
+              <CategorySubtitle>
+                Arrastra elementos al canvas para añadirlos
+              </CategorySubtitle>
+            </CategoryHeader>
+            <CategoryList>
+              {allCategories.map((group) => (
+                <CategoryGroup key={group.group}>
+                  <CategoryGroupTitle>
+                    {group.icon}
+                    {group.group}
+                  </CategoryGroupTitle>
+                  {group.items.map((item) => (
+                    <CategoryItem
+                      key={item.id}
+                      active={activeCategory === item.id}
+                      onClick={() => setActiveCategory(item.id)}
+                    >
+                      <CategoryIcon active={activeCategory === item.id}>
+                        <item.icon size={20} />
+                      </CategoryIcon>
+                      <div>
+                        <div>{item.name}</div>
+                        <div style={{ fontSize: '12px', opacity: 0.7 }}>
+                          {item.description}
+                        </div>
+                      </div>
+                    </CategoryItem>
+                  ))}
+                </CategoryGroup>
+              ))}
+            </CategoryList>
+          </CategoryPanel>
+          <ElementPanel>
+            <ElementHeader>
+              <ElementTitle>
+                {allCategories
+                  .flatMap(g => g.items)
+                  .find(item => item.id === activeCategory)?.name || 'Elementos'}
+              </ElementTitle>
+              <ElementSubtitle>
+                Haz clic o arrastra para añadir
+              </ElementSubtitle>
+            </ElementHeader>
+            {activeCategory === 'image' && (
+              <div style={{ padding: '0 20px 16px 20px', display: 'flex', alignItems: 'center' }}>
+                <button
+                  onClick={handleUploadSVG}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    background: '#f3f4f6',
+                    border: '1px solid #d1d5db',
+                    borderRadius: 8,
+                    padding: '8px 16px',
+                    color: '#374151',
+                    fontWeight: 600,
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    marginBottom: 8
+                  }}
+                >
+                  <Upload size={18} /> Subir SVG
+                </button>
+              </div>
+            )}
+            <ElementGrid>
+              {getElementsForCategory(activeCategory).map((element, index) => (
+                <ElementCard
+                  key={index}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, element)}
+                  onClick={() => handleElementClick(element)}
+                >
+                  <ElementIcon>
+                    {allCategories
+                      .flatMap(g => g.items)
+                      .find(item => item.id === activeCategory)?.icon && 
+                      React.createElement(
+                        allCategories
+                          .flatMap(g => g.items)
+                          .find(item => item.id === activeCategory).icon,
+                        { size: 20 }
+                      )}
+                  </ElementIcon>
+                  <ElementName>{element.name}</ElementName>
+                  <ElementDescription>{element.description}</ElementDescription>
+                </ElementCard>
+              ))}
+            </ElementGrid>
+          </ElementPanel>
+        </>
+      )}
+      {!submenusCollapsed && activeTab === 'sections' && renderSectionsTab()}
+      {!submenusCollapsed && activeTab === 'templates' && renderTemplatesTab()}
     </SidebarContainer>
   );
 };

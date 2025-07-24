@@ -73,20 +73,12 @@ const WebsiteSummary = ({ onSwitchToEditor }) => {
         </div>
         <div className="performance-cards">
           <div className="performance-card">
-            <div className="card-header">
-              <h3>Supervisa la velocidad de tu sitio</h3>
-              <Info size={16} />
-            </div>
             <p>Una vez que tu sitio tenga suficiente tráfico, puedes comprobar su tiempo de carga y optimizarlo.</p>
             <a href="#" className="card-link">
               Leer más <ExternalLink size={16} />
             </a>
           </div>
           <div className="performance-card">
-            <div className="card-header">
-              <h3>Monitorea el tiempo de actividad de tu sitio</h3>
-              <Info size={16} />
-            </div>
             <p>Supervisa la disponibilidad de tu sitio publicado y descubre cómo Wix permite la continuidad operativa en todo momento.</p>
             <a href="#" className="card-link">
               Leer más <ExternalLink size={16} />
@@ -103,4 +95,4 @@ const WebsiteSummary = ({ onSwitchToEditor }) => {
   );
 };
 
-export default WebsiteSummary; 
+export default WebsiteSummary;  

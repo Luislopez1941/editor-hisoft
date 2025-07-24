@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { 
-  Undo, 
-  Redo, 
-  Eye, 
-  EyeOff, 
-  Save, 
-  Download, 
-  Settings, 
-  Smartphone, 
-  Tablet, 
+import {
+  Undo,
+  Redo,
+  Eye,
+  EyeOff,
+  Save,
+  Download,
+  Settings,
+  Smartphone,
+  Tablet,
   Monitor,
   ZoomIn,
   ZoomOut,
@@ -30,7 +30,9 @@ import {
   Move,
   Edit3,
   Maximize2,
-  Minimize2
+  Minimize2,
+  FileText,
+  Grid3X3
 } from 'lucide-react';
 import { useEditor } from '../context/EditorContext';
 
@@ -276,23 +278,29 @@ const Separator = styled.div`
 `;
 
 const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
-  const { 
-    zoom, 
-    setZoom, 
-    undo, 
-    redo, 
-    history, 
+  const {
+    zoom,
+    setZoom,
+    undo,
+    redo,
+    history,
     historyIndex,
     canvasWidth,
     canvasHeight,
     setCanvasSize,
     selectedElementId,
-    elements
+    elements,
+    showGuides,
+    setShowGuides,
+    canvasBackground,
+    setCanvasBackground
   } = useEditor();
 
   // Estados para dropdowns
   const [deviceDropdownOpen, setDeviceDropdownOpen] = useState(false);
+  const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
   const [cursoMode, setCursoMode] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
 
   // Canvas sizes presets
   const canvasSizes = {
@@ -304,6 +312,15 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
   const currentSize = Object.entries(canvasSizes).find(
     ([key, size]) => size.width === canvasWidth && size.height === canvasHeight
   );
+
+  const handleCanvasSizeInput = (dimension, value) => {
+    const numValue = parseInt(value) || 800;
+    if (dimension === 'width') {
+      setCanvasSize(numValue, canvasHeight);
+    } else {
+      setCanvasSize(canvasWidth, numValue);
+    }
+  };
 
   const handleZoomChange = (newZoom) => {
     const clampedZoom = Math.max(25, Math.min(200, newZoom));
@@ -326,7 +343,209 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
     console.log('Exportando proyecto...');
   };
 
+  const handleExportHTML = () => {
+    // Generar HTML del proyecto
+    const generateStyleString = (styles = {}, extra = {}) => {
+      // Convierte el objeto de estilos en un string CSS inline
+      return Object.entries({ ...styles, ...extra })
+        .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+        .map(([k, v]) => `${k.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${v};`)
+        .join(' ');
+    };
+
+    // Obtener padding y offset del canvas/área de trabajo
+    const CANVAS_PADDING = 40; // igual que en CanvasContainer
+    const CONTAINER_MAX_WIDTH = 1500;
+    const CONTAINER_BG = canvasBackground || '#fff';
+    const CONTAINER_RADIUS = 0;
+    const CANVAS_AREA_BG = canvasBackground || '#fff';
+    const CANVAS_AREA_RADIUS = 16;
+    // Calcular altura del header (si existe)
+    const headerElement = elements.find(e => e.type === 'header');
+    let headerHeight = 0;
+    if (headerElement) {
+      const h = headerElement.size?.height || headerElement.styles?.height || 80;
+      headerHeight = typeof h === 'string' ? parseInt(h) : h;
+      if (isNaN(headerHeight)) headerHeight = 80;
+    }
+
+    // Calcular el offset mínimo de todos los elementos para hacer posiciones relativas
+    const minX = Math.min(...elements.map(e => e.position?.x ?? 0), 0);
+    const minY = Math.min(...elements.map(e => e.position?.y ?? 0), 0);
+
+    const generateHTML = (elements, isRoot = true) => {
+      let html = '';
+      elements.forEach(element => {
+        // Estilos base
+        let baseStyles;
+        if (isRoot) {
+          if (element.type === 'header') {
+            baseStyles = {
+              position: 'absolute',
+              left: (element.position?.x == null || element.position?.x === false) ? '0px' : (element.position?.x + 'px'),
+              top: (element.position?.y == null || element.position?.y === false) ? '0px' : (element.position?.y + 'px'),
+              width: element.size?.width || '1450px',
+              height: element.size?.height || 'auto',
+            };
+          } else {
+            baseStyles = {
+              position: 'absolute',
+              left: (element.position?.x == null || element.position?.x === false) ? '0px' : (element.position?.x + 'px'),
+              top: (element.position?.y == null || element.position?.y === false) ? '0px' : (element.position?.y + 'px'),
+              width: element.size?.width || '1450px',
+              height: element.size?.height || 'auto',
+            };
+          }
+        } else {
+          baseStyles = {};
+        }
+        baseStyles = { ...baseStyles, ...element.styles };
+
+        // Quitar border-radius y padding de 20px por defecto en contenedores
+        if (["container", "section", "grid", "columns"].includes(element.type)) {
+          if (baseStyles.borderRadius === undefined || baseStyles.borderRadius === '12px' || baseStyles.borderRadius === '0' || baseStyles.borderRadius === 0) {
+            delete baseStyles.borderRadius;
+          }
+          if (baseStyles.padding === undefined || baseStyles.padding === '20px' || baseStyles.padding === '40px 20px' || baseStyles.padding === '80px 0') {
+            delete baseStyles.padding;
+          }
+        }
+        if (!('padding' in element.styles)) delete baseStyles.padding;
+        if (!('margin' in element.styles)) delete baseStyles.margin;
+
+        switch (element.type) {
+          case 'text':
+            html += `<div style="${generateStyleString(baseStyles)}">${element.props?.content || 'Texto'}</div>`;
+            break;
+          case 'heading':
+            const headingLevel = element.props?.level || 1;
+            html += `<h${headingLevel} style="${generateStyleString(baseStyles)}">${element.props?.content || 'Título'}</h${headingLevel}>`;
+            break;
+          case 'button':
+            if (!('background' in element.styles)) baseStyles.background = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
+            if (!('border' in element.styles)) baseStyles.border = 'none';
+            html += `<button style="${generateStyleString(baseStyles)}">${element.props?.text || 'Botón'}</button>`;
+            break;
+          case 'image':
+            html += `<img src="${element.props?.src || ''}" alt="${element.props?.alt || 'Imagen'}" style="${generateStyleString(baseStyles, { objectFit: element.styles?.objectFit || 'cover' })}">`;
+            break;
+          case 'container':
+          case 'section':
+          case 'grid':
+          case 'columns': {
+            if (!('display' in element.styles)) delete baseStyles.display;
+            if (!('alignItems' in element.styles)) delete baseStyles.alignItems;
+            if (!('justifyContent' in element.styles)) delete baseStyles.justifyContent;
+            html += `<div style="${generateStyleString(baseStyles)}">`;
+            if (element.children && element.children.length > 0) {
+              html += generateHTML(element.children, false);
+            }
+            html += '</div>';
+            break;
+          }
+          case 'card':
+            html += `<div style="${generateStyleString(baseStyles)}">`;
+            html += `<h3 style="margin:0 0 12px 0;font-size:24px;font-weight:700;color:#111827;font-family:'Inter',system-ui,sans-serif;">${element.props?.title || 'Título de la Tarjeta'}</h3>`;
+            html += `<p style="margin:0;font-size:16px;color:#6b7280;line-height:1.6;font-family:'Inter',system-ui,sans-serif;">${element.props?.content || 'Descripción de la tarjeta con información relevante.'}</p>`;
+            html += '</div>';
+            break;
+          default:
+            html += `<div style="${generateStyleString(baseStyles)}">Elemento ${element.type}</div>`;
+        }
+      });
+      return html;
+    };
+
+    // --- Generar HTML exportado ---
+    const getUsedFonts = (elements, fonts = new Set()) => {
+      elements.forEach(element => {
+        if (element.styles?.fontFamily) {
+          fonts.add(element.styles.fontFamily.replace(/['"]/g, ''));
+        }
+        if (element.children) getUsedFonts(element.children, fonts);
+      });
+      return fonts;
+    };
+
+    const usedFonts = Array.from(getUsedFonts(elements));
+    const googleFontLinks = usedFonts
+      .filter(font => [
+        'Roboto','Montserrat','Lato','Oswald','Poppins','Merriweather','Nunito','Raleway','Playfair Display','Fira Sans','Ubuntu','Quicksand','Rubik','Bebas Neue'
+      ].includes(font))
+      .map(font => `<link href="https://fonts.googleapis.com/css?family=${encodeURIComponent(font)}:400,700&display=swap" rel="stylesheet">`).join('\n');
+
+    const fullHTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página Web Generada - HiPlot</title>
+    ${googleFontLinks}
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, sans-serif;
+            background: ${canvasBackground};
+        }
+        .container {
+            position: relative;
+            width: 100%;
+            max-width: 1450px;
+            min-height: 800px;
+            margin: 0 auto;
+            background: ${CONTAINER_BG};
+            border-radius: ${CONTAINER_RADIUS}px;
+            box-shadow: none;
+            padding: 0;
+        }
+        .canvas-area {
+           width: 1450px;
+           position: relative;
+           border: 1px solid #e5e7eb;
+           padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+      <div class="canvas-area">
+        ${generateHTML(elements)}
+      </div>
+    </div>
+</body>
+</html>`;
+
+    // Crear y descargar el archivo
+    const blob = new Blob([fullHTML], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pagina-web-hiplot.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    console.log('HTML exportado exitosamente');
+  };
+
   const selectedElement = elements.find(el => el.id === selectedElementId);
+
+  // Cerrar dropdowns cuando se hace clic fuera
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.dropdown-container')) {
+        setDeviceDropdownOpen(false);
+        setExportDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <ToolbarContainer>
@@ -341,15 +560,15 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
 
       {/* Herramientas de edición */}
       <ToolbarSection>
-        <ToolbarButton 
-          onClick={undo} 
+        <ToolbarButton
+          onClick={undo}
           disabled={historyIndex <= 0}
           title="Deshacer (Ctrl+Z)"
         >
           <Undo size={18} />
         </ToolbarButton>
-        <ToolbarButton 
-          onClick={redo} 
+        <ToolbarButton
+          onClick={redo}
           disabled={historyIndex >= history.length - 1}
           title="Rehacer (Ctrl+Y)"
         >
@@ -359,7 +578,7 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
 
       {/* Zoom y vista */}
       <ToolbarSection>
-        <ToolbarButton 
+        <ToolbarButton
           onClick={() => handleZoomChange(zoom - 10)}
           disabled={zoom <= 25}
           title="Reducir zoom"
@@ -374,7 +593,7 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
           max="200"
         />
         <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: '500' }}>%</span>
-        <ToolbarButton 
+        <ToolbarButton
           onClick={() => handleZoomChange(zoom + 10)}
           disabled={zoom >= 200}
           title="Aumentar zoom"
@@ -385,8 +604,8 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
 
       {/* Tamaño del canvas */}
       <ToolbarSection>
-        <div style={{ position: 'relative' }}>
-          <DropdownButton 
+        <div style={{ position: 'relative' }} className="dropdown-container">
+          <DropdownButton
             onClick={() => setDeviceDropdownOpen(!deviceDropdownOpen)}
           >
             {currentSize ? (
@@ -401,24 +620,44 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
               </>
             )}
           </DropdownButton>
-          
+
           {deviceDropdownOpen && (
             <DropdownMenu>
               {Object.entries(canvasSizes).map(([key, size]) => (
-                                 <DropdownItem
-                   key={key}
-                   onClick={() => handleCanvasSizeChange(key)}
-                   className={currentSize && currentSize[0] === key ? 'active' : ''}
-                 >
-                   {React.createElement(size.icon, { size: 16 })}
-                   {size.label}
-                   <span style={{ fontSize: '12px', opacity: 0.7 }}>
-                     {size.width}×{size.height}
-                   </span>
-                 </DropdownItem>
+                <DropdownItem
+                  key={key}
+                  onClick={() => handleCanvasSizeChange(key)}
+                  className={currentSize && currentSize[0] === key ? 'active' : ''}
+                >
+                  {React.createElement(size.icon, { size: 16 })}
+                  {size.label}
+                  <span style={{ fontSize: '12px', opacity: 0.7 }}>
+                    {size.width}×{size.height}
+                  </span>
+                </DropdownItem>
               ))}
             </DropdownMenu>
           )}
+        </div>
+        
+        {/* Controles manuales de tamaño */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500' }}>W:</span>
+          <ZoomInput
+            type="number"
+            value={1450}
+            disabled
+            style={{ width: '60px', background: '#f3f4f6', color: '#9ca3af', cursor: 'not-allowed' }}
+          />
+          <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500' }}>H:</span>
+          <ZoomInput
+            type="number"
+            value={canvasHeight}
+            onChange={(e) => handleCanvasSizeInput('height', e.target.value)}
+            min="400"
+            max="5000"
+            style={{ width: '60px' }}
+          />
         </div>
       </ToolbarSection>
 
@@ -434,20 +673,31 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
         </ModeToggle>
       </ToolbarSection>
 
+      {/* Líneas de guía */}
+      <ToolbarSection>
+        <ToolbarButton
+          onClick={() => setShowGuides(!showGuides)}
+          $active={showGuides}
+          title="Mostrar/Ocultar líneas de guía"
+        >
+          <Grid3X3 size={18} />
+        </ToolbarButton>
+      </ToolbarSection>
+
       {/* Elemento seleccionado */}
       {selectedElement && (
         <ToolbarSection>
-          <span style={{ 
-            fontSize: '14px', 
-            color: '#6b7280', 
+          <span style={{
+            fontSize: '14px',
+            color: '#6b7280',
             fontWeight: '500',
             fontFamily: 'Inter, system-ui, sans-serif'
           }}>
-            Seleccionado: 
+            Seleccionado:
           </span>
-          <span style={{ 
-            fontSize: '14px', 
-            color: '#374151', 
+          <span style={{
+            fontSize: '14px',
+            color: '#374151',
             fontWeight: '600',
             fontFamily: 'Inter, system-ui, sans-serif'
           }}>
@@ -455,6 +705,18 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
           </span>
         </ToolbarSection>
       )}
+
+      {/* Indicador de tamaño del canvas */}
+      <ToolbarSection>
+        <span style={{
+          fontSize: '12px',
+          color: '#6b7280',
+          fontWeight: '500',
+          fontFamily: 'Inter, system-ui, sans-serif'
+        }}>
+          Canvas: {canvasWidth}×{canvasHeight}
+        </span>
+      </ToolbarSection>
 
       {/* Spacer */}
       <div style={{ flex: 1 }} />
@@ -468,18 +730,62 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
           {isPreviewMode ? <Edit3 size={16} /> : <Eye size={16} />}
           {isPreviewMode ? 'Editar' : 'Vista previa'}
         </ModeToggle>
-        
-        <ToolbarButton 
-          onClick={handleExport}
-          title="Exportar proyecto"
-        >
-          <Download size={18} />
-        </ToolbarButton>
-        
+
+        <div style={{ position: 'relative' }} className="dropdown-container">
+          <DropdownButton
+            onClick={() => setExportDropdownOpen(!exportDropdownOpen)}
+          >
+            <FileText size={16} />
+            Exportar
+          </DropdownButton>
+
+          {exportDropdownOpen && (
+            <DropdownMenu>
+              <DropdownItem onClick={() => {
+                handleExportHTML();
+                setExportDropdownOpen(false);
+              }}>
+                <FileText size={16} />
+                Exportar HTML
+                <span style={{ fontSize: '12px', opacity: 0.7 }}>
+                  Archivo .html
+                </span>
+              </DropdownItem>
+              <DropdownItem onClick={() => {
+                handleExport();
+                setExportDropdownOpen(false);
+              }}>
+                <Download size={16} />
+                Exportar Proyecto
+                <span style={{ fontSize: '12px', opacity: 0.7 }}>
+                  Archivo .json
+                </span>
+              </DropdownItem>
+            </DropdownMenu>
+          )}
+        </div>
+
         <SaveButton onClick={handleSave}>
           <Save size={16} />
           Guardar
         </SaveButton>
+        <ToolbarButton
+          title="Color de fondo del canvas"
+          onClick={() => setShowColorPicker(v => !v)}
+          style={{ position: 'relative' }}
+        >
+          <Palette size={20} />
+        </ToolbarButton>
+        {showColorPicker && (
+          <div style={{ position: 'absolute', top: 50, left: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 8, zIndex: 1000, boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }}>
+            <input
+              type="color"
+              value={canvasBackground}
+              onChange={e => setCanvasBackground(e.target.value)}
+              style={{ width: 40, height: 40, border: 'none', background: 'none', cursor: 'pointer' }}
+            />
+          </div>
+        )}
       </ToolbarSection>
     </ToolbarContainer>
   );

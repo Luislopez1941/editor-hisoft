@@ -7,7 +7,8 @@ const RecursiveElementRenderer = ({
   isPreviewMode, 
   onElementClick, 
   onDelete, 
-  onDropSection 
+  onDropSection, 
+  realBounds 
 }) => {
   const { selectedElementId } = useEditor();
 
@@ -23,6 +24,7 @@ const RecursiveElementRenderer = ({
           onDelete={onDelete}
           onDropSection={onDropSection}
           renderChildren={false}
+          realBounds={realBounds}
         />
         
         {/* Renderizar elementos hijos recursivamente */}

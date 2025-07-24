@@ -34,12 +34,15 @@ const AppContainer = styled.div`
   height: 100vh;
   background: #f5f5f5;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
 `;
 
 const MainContent = styled.div`
   display: flex;
   flex: 1;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 `;
 
 const CanvasContainer = styled.div`
@@ -47,6 +50,8 @@ const CanvasContainer = styled.div`
   display: flex;
   background: #ffffff;
   position: relative;
+  min-height: 0;
+  overflow: hidden;
 `;
 
 // Componente interno del editor que tiene acceso al contexto
@@ -58,7 +63,7 @@ const EditorView = ({ selectedElement, setSelectedElement, isPreviewMode, setIsP
         setIsPreviewMode={setIsPreviewMode}
         onBackToDashboard={onBackToDashboard}
       />
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <Sidebar />
         <MainContent>
           <CanvasContainer>
@@ -67,12 +72,11 @@ const EditorView = ({ selectedElement, setSelectedElement, isPreviewMode, setIsP
               selectedElement={selectedElement}
               setSelectedElement={setSelectedElement}
             />
-            {!isPreviewMode && (
-              <PropertyPanel 
-                selectedElement={selectedElement}
-                setSelectedElement={setSelectedElement}
-              />
-            )}
+            <PropertyPanel 
+              selectedElement={selectedElement}
+              setSelectedElement={setSelectedElement}
+              isPreviewMode={isPreviewMode}
+            />
           </CanvasContainer>
         </MainContent>
       </div>

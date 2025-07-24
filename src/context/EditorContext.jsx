@@ -5,11 +5,14 @@ const EditorContext = createContext();
 const initialState = {
   elements: [],
   selectedElementId: null,
-  canvasWidth: 1200,
-  canvasHeight: 800,
+  canvasWidth: 1450,
+  canvasHeight: 3000,
   zoom: 100,
   history: [],
   historyIndex: -1,
+  showGuides: true,
+  snapLines: { vertical: [], horizontal: [] }, // Líneas de snap activas
+  canvasBackground: '#f8fafc', // Color de fondo del canvas
 };
 
 const editorReducer = (state, action) => {
@@ -209,6 +212,24 @@ const editorReducer = (state, action) => {
         canvasHeight: action.payload.height,
       };
 
+    case 'TOGGLE_GUIDES':
+      return {
+        ...state,
+        showGuides: !state.showGuides,
+      };
+
+    case 'SET_SNAP_LINES':
+      return {
+        ...state,
+        snapLines: action.payload,
+      };
+
+    case 'SET_CANVAS_BACKGROUND':
+      return {
+        ...state,
+        canvasBackground: action.payload,
+      };
+
     default:
       return state;
   }
@@ -344,6 +365,18 @@ export const EditorProvider = ({ children }) => {
     });
   };
 
+  const toggleGuides = () => {
+    dispatch({ type: 'TOGGLE_GUIDES' });
+  };
+
+  const setSnapLines = (snapLines) => {
+    dispatch({ type: 'SET_SNAP_LINES', payload: snapLines });
+  };
+
+  const setCanvasBackground = (color) => {
+    dispatch({ type: 'SET_CANVAS_BACKGROUND', payload: color });
+  };
+
   // Event listener para cargar plantillas desde App.jsx
   useEffect(() => {
     const handleLoadTemplate = (event) => {
@@ -385,6 +418,104 @@ export const EditorProvider = ({ children }) => {
     };
   }, []);
 
+  // Flag para evitar duplicados de Header
+  const headerAddedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    // Eliminar headers duplicados automáticamente
+    const headers = state.elements.filter(el => el.type === 'header');
+    if (headers.length > 1) {
+      // Dejar solo el primero
+      const keepId = headers[0].id;
+      const filtered = state.elements.filter(el => el.type !== 'header' || el.id === keepId);
+      dispatch({ type: 'UPDATE_ELEMENT', payload: { id: '__REORDER__', updates: { elements: filtered } } });
+      return;
+    }
+    // Al iniciar o cuando cambian los elementos, si no existe header, agregarlo automáticamente
+    if (!headers.length && !headerAddedRef.current) {
+      const headerElement = {
+        id: `element-header`,
+        type: 'header',
+        props: { fixed: false },
+        position: { x: 0, y: 0 },
+        size: { width: '100%', height: '80px' },
+        styles: {
+          width: '100%',
+          height: '80px',
+          background: '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 40px',
+          boxSizing: 'border-box',
+          zIndex: 1000,
+          position: 'absolute',
+          top: 0,
+          left: 0
+        },
+        children: [
+          {
+            id: 'header-logo',
+            type: 'image',
+            props: { src: 'https://placehold.co/120x40?text=Logo', alt: 'Logo' },
+            styles: { width: '120px', height: '40px', objectFit: 'contain' },
+            position: { x: 0, y: 20 },
+            size: { width: '120px', height: '40px' }
+          },
+          {
+            id: 'header-brand',
+            type: 'text',
+            props: { content: 'MiMarca' },
+            styles: { fontSize: '28px', fontWeight: '700', color: '#22223b', marginLeft: '20px' },
+            position: { x: 140, y: 20 },
+            size: { width: 'auto', height: 'auto' }
+          },
+          {
+            id: 'header-btn-inicio',
+            type: 'button',
+            props: { text: 'Inicio' },
+            styles: { background: '#3b82f6', color: '#fff', fontWeight: '600', borderRadius: '8px', padding: '10px 24px', marginLeft: 'auto' },
+            position: { x: 400, y: 20 },
+            size: { width: 'auto', height: '40px' }
+          },
+          {
+            id: 'header-btn-tienda',
+            type: 'button',
+            props: { text: 'Tienda' },
+            styles: { background: '#f3f4f6', color: '#22223b', fontWeight: '600', borderRadius: '8px', padding: '10px 24px', marginLeft: '12px' },
+            position: { x: 520, y: 20 },
+            size: { width: 'auto', height: '40px' }
+          },
+          {
+            id: 'header-btn-contacto',
+            type: 'button',
+            props: { text: 'Contacto' },
+            styles: { background: '#f3f4f6', color: '#22223b', fontWeight: '600', borderRadius: '8px', padding: '10px 24px', marginLeft: '12px' },
+            position: { x: 640, y: 20 },
+            size: { width: 'auto', height: '40px' }
+          }
+        ]
+      };
+      dispatch({ type: 'ADD_ELEMENT', payload: headerElement });
+      headerAddedRef.current = true;
+      return;
+    }
+    // Si el header tiene hijos duplicados (por id), dejar solo uno de cada id
+    if (headers.length === 1 && headers[0].children && headers[0].children.length > 0) {
+      const uniqueChildren = Object.values(headers[0].children.reduce((acc, child) => {
+        acc[child.id] = child;
+        return acc;
+      }, {}));
+      if (uniqueChildren.length !== headers[0].children.length) {
+        dispatch({ type: 'UPDATE_ELEMENT', payload: { id: headers[0].id, updates: { children: uniqueChildren } } });
+      }
+    }
+    // Reset flag si el header fue eliminado (por limpiar canvas)
+    if (!headers.length) {
+      headerAddedRef.current = false;
+    }
+  }, [state.elements]);
+
   const value = {
     ...state,
     addElement,
@@ -400,6 +531,9 @@ export const EditorProvider = ({ children }) => {
     loadTemplate,
     clearCanvas,
     setCanvasSize,
+    toggleGuides,
+    setSnapLines,
+    setCanvasBackground,
   };
 
   return (

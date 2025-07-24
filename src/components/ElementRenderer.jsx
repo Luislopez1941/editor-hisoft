@@ -9,8 +9,8 @@ const ElementWrapper = styled.div`
     if (["section", "container", "card", "grid", "columns", "text", "heading", "button", "image"].includes(props.elementType)) {
       return `
         position: absolute;
-        left: ${props.position?.x || 50}px;
-        top: ${props.position?.y || 50}px;
+        left: ${props.position?.x ?? 0}px;
+        top: ${props.position?.y ?? 0}px;
         width: ${props.size?.width || 'auto'};
         height: ${props.size?.height || 'auto'};
         min-width: ${props.elementType === 'section' ? '400px' : '100px'};
@@ -28,7 +28,6 @@ const ElementWrapper = styled.div`
   }}
   cursor: ${props => props.isDragging ? 'grabbing' : props.isPreviewMode ? 'default' : 'pointer'};
   user-select: ${props => props.isPreviewMode ? 'text' : 'none'};
-  border: ${props => props.isSelected && !props.isPreviewMode ? '2px solid #3b82f6' : '2px solid transparent'};
   border-radius: 8px;
   transition: all 0.2s ease;
   background: ${props => props.isSelected && !props.isPreviewMode ? 'rgba(59, 130, 246, 0.05)' : 'transparent'};
@@ -102,11 +101,6 @@ const ButtonElement = styled.button`
   width: auto;
   display: inline-block;
   box-shadow: ${props => props.styles?.boxShadow || '0 2px 4px rgba(0, 0, 0, 0.1)'};
-  
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  }
 `;
 
 // Image Element
@@ -114,15 +108,21 @@ const ImageElement = styled.img`
   width: 100%;
   height: auto;
   max-height: 400px;
-  object-fit: ${props => props.styles?.objectFit || 'cover'};
+  object-fit: ${props => {
+    const src = props.src || '';
+    if (src.startsWith('data:image/svg+xml') || src.endsWith('.svg')) return 'contain';
+    return props.styles?.objectFit || 'cover';
+  }};
   border-radius: ${props => props.styles?.borderRadius || '8px'};
   border: ${props => props.styles?.border || 'none'};
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: transparent;
 `;
 
 // Container Elements
 const SectionElement = styled.section`
-  width: 100%;
+  width: ${props => props.size?.width || '1450px'};
+  max-width: 1450px;
   height: 100%;
   background: ${props => props.styles?.background || 'linear-gradient(135deg, #f8fafc, #e2e8f0)'};
   padding: ${props => props.styles?.padding || '80px 0'};
@@ -138,44 +138,62 @@ const SectionElement = styled.section`
 `;
 
 const ContainerElement = styled.div`
-  width: 100%;
+  width: ${props => props.size?.width || '1450px'};
+  max-width: 1450px;
   height: 100%;
-  max-width: ${props => props.styles?.maxWidth || '1200px'};
   margin: ${props => props.styles?.margin || '0 auto'};
-  padding: ${props => props.styles?.padding || '40px 20px'};
-  background: ${props => props.styles?.background || 'transparent'};
-  border-radius: ${props => props.styles?.borderRadius || '12px'};
+  padding: ${props => props.styles?.padding ?? '0'};
+  background: ${props => props.styles?.background ?? 'transparent'};
+  border-radius: ${props => props.styles?.borderRadius ?? '0'};
   border: ${props => props.styles?.border || 'none'};
   display: ${props => props.styles?.display || 'block'};
   flex-direction: ${props => props.styles?.flexDirection || 'column'};
-  align-items: ${props => props.styles?.alignItems || 'center'};
-  justify-content: ${props => props.styles?.justifyContent || 'center'};
-  gap: ${props => props.styles?.gap || '20px'};
+  align-items: ${props => props.styles?.alignItems || 'stretch'};
+  justify-content: ${props => props.styles?.justifyContent || 'flex-start'};
+  gap: ${props => props.styles?.gap ?? '0'};
   box-shadow: ${props => props.styles?.boxShadow || 'none'};
+`;
+
+const HeaderElement = styled.header`
+  width: ${props => props.size?.width || '100%'};
+  max-width: 1450px;
+  height: 80px;
+  background: ${props => props.styles?.background || '#ffffff'};
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: ${props => props.styles?.padding || '0 40px'};
+  box-sizing: border-box;
+  z-index: 1000;
+  position: absolute;
+  top: 0;
+  left: 0;
 `;
 
 // Grid Elements
 const GridElement = styled.div`
-  width: 100%;
+  width: ${props => props.size?.width || '1450px'};
+  max-width: 1450px;
   height: 100%;
   display: grid;
   grid-template-columns: repeat(${props => props.columns || 3}, 1fr);
   gap: ${props => props.gap || '20px'};
   background: ${props => props.styles?.background || 'transparent'};
   padding: ${props => props.styles?.padding || '20px'};
-  border-radius: ${props => props.styles?.borderRadius || '12px'};
+  border-radius: ${props => props.styles?.borderRadius || '0'};
   border: ${props => props.styles?.border || 'none'};
 `;
 
 const ColumnsElement = styled.div`
-  width: 100%;
+  width: ${props => props.size?.width || '1450px'};
+  max-width: 1450px;
   height: 100%;
   display: grid;
   grid-template-columns: repeat(${props => props.columns || 2}, 1fr);
   gap: ${props => props.gap || '32px'};
   background: ${props => props.styles?.background || 'transparent'};
   padding: ${props => props.styles?.padding || '20px'};
-  border-radius: ${props => props.styles?.borderRadius || '12px'};
+  border-radius: ${props => props.styles?.borderRadius || '0'};
   border: ${props => props.styles?.border || 'none'};
 `;
 
@@ -300,7 +318,8 @@ const ElementRenderer = ({
   onMove,
   onDelete,
   onDropSection,
-  renderChildren = true
+  renderChildren = true,
+  realBounds
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -311,16 +330,217 @@ const ElementRenderer = ({
     updateElement, 
     deleteElement, 
     selectElement, 
-    selectedElementId 
+    selectedElementId,
+    elements,
+    canvasWidth,
+    canvasHeight,
+    setSnapLines
   } = useEditor();
+
+  // Obtener altura del header
+  const safe = (v, fallback) => (typeof v === 'number' && !isNaN(v) && v >= 0 ? v : fallback);
+  const safeWidth = safe(canvasWidth, 1200);
+  const safeHeight = safe(canvasHeight, 800);
+  const canvasLeft = safe(realBounds?.canvas?.left, 0);
+  const canvasTop = safe(realBounds?.canvas?.top, 0);
+  const headerElement = elements.find(el => el.type === 'header');
+  let headerHeight = 0;
+  if (headerElement) {
+    const h = headerElement.size?.height || headerElement.styles?.height || 80;
+    headerHeight = typeof h === 'string' ? parseInt(h) : h;
+    if (isNaN(headerHeight) || headerHeight < 0) headerHeight = 80;
+  }
+  // Definir padding igual que en CanvasArea
+  const CANVAS_PADDING = 40;
+  // Limites duros del canvas-area (UNIFICADOS)
+  const leftLimit = 0;
+  const rightLimit = safeWidth;
+  const topLimit = headerHeight; // solo header, sin padding extra
+  const bottomLimit = safeHeight - CANVAS_PADDING;
+  const limitsValid = rightLimit - leftLimit > 50 && bottomLimit - topLimit > 50;
 
   // Estado para edición inline
   const [editing, setEditing] = useState(false);
-  const [editValue, setEditValue] = useState(element.props?.content || '');
+  const [editValue, setEditValue] = useState(element.type === 'button' ? (element.props?.text || '') : (element.props?.content || ''));
   const inputRef = useRef(null);
 
   // Determinar si es movible/editable
   const isMovable = ["section", "container", "columns", "card", "grid", "text", "heading", "button", "image"].includes(element.type);
+
+  // Función para calcular snap automático y líneas activas
+  const calculateSnapPosition = (newX, newY) => {
+    const tolerance = 10;
+    let snappedX = newX;
+    let snappedY = newY;
+    const activeVerticalLines = [];
+    const activeHorizontalLines = [];
+    const currentRect = elementRef.current?.getBoundingClientRect();
+    if (!currentRect) return { x: newX, y: newY, snapLines: { vertical: [], horizontal: [] } };
+    const elementWidth = elementRef.current.offsetWidth || (elementRef.current.getBoundingClientRect()?.width ?? 0);
+    const elementHeight = elementRef.current.offsetHeight || (elementRef.current.getBoundingClientRect()?.height ?? 0);
+    // Snap exacto a los límites
+    if (Math.abs(snappedX - leftLimit) < tolerance || snappedX < tolerance) {
+      snappedX = leftLimit;
+      if (!activeVerticalLines.includes(leftLimit)) activeVerticalLines.push(leftLimit);
+    }
+    if (Math.abs((snappedX + elementWidth) - rightLimit) < tolerance || (snappedX + elementWidth) > rightLimit - tolerance) {
+      snappedX = rightLimit - elementWidth;
+      if (!activeVerticalLines.includes(rightLimit)) activeVerticalLines.push(rightLimit);
+    }
+    if (Math.abs(snappedY - topLimit) < tolerance || snappedY < topLimit + tolerance) {
+      snappedY = topLimit;
+      if (!activeHorizontalLines.includes(topLimit)) activeHorizontalLines.push(topLimit);
+    }
+    // Forzar snap si estamos muy cerca del borde izquierdo o header
+    if (snappedX < tolerance) {
+      snappedX = 0;
+      if (!activeVerticalLines.includes(0)) activeVerticalLines.push(0);
+    }
+    if (Math.abs(snappedY - topLimit) < tolerance || snappedY < topLimit + tolerance) {
+      snappedY = topLimit;
+      if (!activeHorizontalLines.includes(topLimit)) activeHorizontalLines.push(topLimit);
+    }
+    // Snap sugerido: si hay header, sugerir alineación justo debajo y a la izquierda
+    if (headerElement) {
+      if (Math.abs(snappedY - topLimit) < tolerance) {
+        snappedY = topLimit;
+        activeHorizontalLines.push(topLimit);
+      }
+      if (Math.abs(snappedX - leftLimit) < tolerance) {
+        snappedX = leftLimit;
+        activeVerticalLines.push(leftLimit);
+      }
+    }
+    // Centro, otros elementos, etc. (igual que antes)
+    const canvasCenterX = canvasLeft + (canvasWidth || 1200) / 2;
+    const canvasCenterY = canvasTop + (canvasHeight || 800) / 2;
+    const elementCenterX = snappedX + elementWidth / 2;
+    const elementCenterY = snappedY + elementHeight / 2;
+
+    if (!activeVerticalLines.includes(snappedX)) {
+      if (Math.abs(elementCenterX - canvasCenterX) < tolerance) {
+        snappedX = canvasCenterX - elementWidth / 2;
+        activeVerticalLines.push(canvasCenterX);
+      }
+    }
+    if (!activeHorizontalLines.includes(snappedY)) {
+      if (Math.abs(elementCenterY - canvasCenterY) < tolerance) {
+        snappedY = canvasCenterY - elementHeight / 2;
+        activeHorizontalLines.push(canvasCenterY);
+      }
+    }
+    elements.forEach(otherElement => {
+      if (otherElement.id === element.id || otherElement.type === 'header') return;
+      const otherX = otherElement.position?.x || 0;
+      const otherY = otherElement.position?.y || 0;
+      const otherWidth = parseInt(otherElement.size?.width) || 100;
+      const otherHeight = parseInt(otherElement.size?.height) || 100;
+      const otherLeft = otherX;
+      const otherRight = otherX + otherWidth;
+      const otherCenterX = otherX + otherWidth / 2;
+      const otherTop = otherY;
+      const otherBottom = otherY + otherHeight;
+      const otherCenterY = otherY + otherHeight / 2;
+      if (!activeVerticalLines.includes(snappedX)) {
+        if (Math.abs(snappedX - otherLeft) < tolerance) {
+          snappedX = otherLeft;
+          activeVerticalLines.push(otherLeft);
+        } else if (Math.abs((snappedX + elementWidth) - otherRight) < tolerance) {
+          snappedX = otherRight - elementWidth;
+          activeVerticalLines.push(otherRight);
+        } else if (Math.abs(elementCenterX - otherCenterX) < tolerance) {
+          snappedX = otherCenterX - elementWidth / 2;
+          activeVerticalLines.push(otherCenterX);
+        } else if (Math.abs(snappedX - otherRight) < tolerance) {
+          snappedX = otherRight;
+          activeVerticalLines.push(otherRight);
+        } else if (Math.abs((snappedX + elementWidth) - otherLeft) < tolerance) {
+          snappedX = otherLeft - elementWidth;
+          activeVerticalLines.push(otherLeft);
+        }
+      }
+      if (!activeHorizontalLines.includes(snappedY)) {
+        if (Math.abs(snappedY - otherTop) < tolerance) {
+          snappedY = otherTop;
+          activeHorizontalLines.push(otherTop);
+        } else if (Math.abs((snappedY + elementHeight) - otherBottom) < tolerance) {
+          snappedY = otherBottom - elementHeight;
+          activeHorizontalLines.push(otherBottom);
+        } else if (Math.abs(elementCenterY - otherCenterY) < tolerance) {
+          snappedY = otherCenterY - elementHeight / 2;
+          activeHorizontalLines.push(otherCenterY);
+        } else if (Math.abs(snappedY - otherBottom) < tolerance) {
+          snappedY = otherBottom;
+          activeHorizontalLines.push(otherBottom);
+        } else if (Math.abs((snappedY + elementHeight) - otherTop) < tolerance) {
+          snappedY = otherTop - elementHeight;
+          activeHorizontalLines.push(otherTop);
+        }
+      }
+    });
+
+    // --- SNAP PROFESIONAL ---
+    // 1. Límite duro a los bordes del canvas-area
+    if (snappedX < leftLimit) snappedX = leftLimit;
+    if (snappedX + elementWidth > rightLimit) snappedX = rightLimit - elementWidth;
+
+    // 2. Snap magnético a otros elementos (bordes y centros)
+    elements.forEach(otherElement => {
+      if (otherElement.id === element.id) return;
+      const otherX = otherElement.position?.x || 0;
+      const otherY = otherElement.position?.y || 0;
+      const otherWidth = parseInt(otherElement.size?.width) || 100;
+      const otherHeight = parseInt(otherElement.size?.height) || 100;
+      const otherLeft = otherX;
+      const otherRight = otherX + otherWidth;
+      const otherCenterX = otherX + otherWidth / 2;
+      const otherTop = otherY;
+      const otherBottom = otherY + otherHeight;
+      const otherCenterY = otherY + otherHeight / 2;
+      // Snap horizontal (izquierda, derecha, centro)
+      if (Math.abs(snappedX - otherLeft) < tolerance) {
+        snappedX = otherLeft;
+        activeVerticalLines.push(otherLeft);
+      } else if (Math.abs((snappedX + elementWidth) - otherRight) < tolerance) {
+        snappedX = otherRight - elementWidth;
+        activeVerticalLines.push(otherRight);
+      } else if (Math.abs(snappedX + elementWidth / 2 - otherCenterX) < tolerance) {
+        snappedX = otherCenterX - elementWidth / 2;
+        activeVerticalLines.push(otherCenterX);
+      }
+      // Snap vertical (tope, fondo, centro)
+      if (Math.abs(snappedY - otherTop) < tolerance) {
+        snappedY = otherTop;
+        activeHorizontalLines.push(otherTop);
+      } else if (Math.abs((snappedY + elementHeight) - otherBottom) < tolerance) {
+        snappedY = otherBottom - elementHeight;
+        activeHorizontalLines.push(otherBottom);
+      } else if (Math.abs(snappedY + elementHeight / 2 - otherCenterY) < tolerance) {
+        snappedY = otherCenterY - elementHeight / 2;
+        activeHorizontalLines.push(otherCenterY);
+      }
+      // 3. Snap sugerido: si hay un elemento arriba, sugerir su borde inferior como tope
+      if (snappedY > otherBottom && Math.abs(snappedY - otherBottom) < tolerance) {
+        snappedY = otherBottom;
+        activeHorizontalLines.push(otherBottom);
+      }
+    });
+    // --- SOLO AL FINAL: limitar para que no se desborde ---
+    if (limitsValid) {
+      if (snappedX < leftLimit) snappedX = leftLimit;
+      if (snappedX + elementWidth > rightLimit) snappedX = rightLimit - elementWidth;
+      if (snappedY < topLimit) snappedY = topLimit;
+    }
+
+    return {
+      x: snappedX,
+      y: snappedY,
+      snapLines: {
+        vertical: [...new Set(activeVerticalLines)],
+        horizontal: [...new Set(activeHorizontalLines)]
+      }
+    };
+  };
 
   // Manejar click
   const handleElementClick = (e, id) => {
@@ -350,21 +570,34 @@ const ElementRenderer = ({
     if (!isDragging && !isResizing) return;
     
     if (isDragging) {
-      const canvasRect = elementRef.current.parentElement.getBoundingClientRect();
-      const newX = Math.max(0, e.clientX - canvasRect.left - dragStart.x);
-      const newY = Math.max(0, e.clientY - canvasRect.top - dragStart.y);
-      
+      const canvasArea = document.querySelector('.canvas-area');
+      const canvasRect = canvasArea ? canvasArea.getBoundingClientRect() : elementRef.current.parentElement.getBoundingClientRect();
+      let newX = e.clientX - canvasRect.left - dragStart.x;
+      let newY = e.clientY - canvasRect.top - dragStart.y;
+      newX = Math.max(leftLimit, newX); // permite llegar a 0 para todos los elementos, incluido header
+      newY = Math.max(topLimit, newY);
+      const { x: snappedX, y: snappedY, snapLines } = calculateSnapPosition(newX, newY);
+      const limitedX = Math.max(leftLimit, Math.min(snappedX, rightLimit - elementRef.current.offsetWidth));
+      const limitedY = Math.max(topLimit, snappedY); // Eliminado el límite inferior para permitir movimiento libre hacia abajo
       updateElement(element.id, {
-        position: { x: newX, y: newY }
+        position: { x: limitedX, y: limitedY }
       });
+      setSnapLines(snapLines);
     }
     
     if (isResizing) {
       const deltaX = e.clientX - resizeStart.x;
       const deltaY = e.clientY - resizeStart.y;
-      const newWidth = Math.max(100, resizeStart.width + deltaX);
-      const newHeight = Math.max(50, resizeStart.height + deltaY);
-      
+      let newWidth = Math.max(50, resizeStart.width + deltaX);
+      let newHeight = Math.max(30, resizeStart.height + deltaY);
+      // SNAP HEADER A LA DERECHA
+      if (element.type === 'header') {
+        const left = element.position?.x ?? 0;
+        const rightLimit = Math.min(safeWidth, 1450);
+        if (Math.abs(left + newWidth - rightLimit) < 10) {
+          newWidth = rightLimit - left;
+        }
+      }
       updateElement(element.id, {
         size: { width: `${newWidth}px`, height: `${newHeight}px` }
       });
@@ -374,6 +607,8 @@ const ElementRenderer = ({
   const handleMouseUp = () => {
     setIsDragging(false);
     setIsResizing(false);
+    // Limpiar líneas de snap cuando termina el arrastre
+    setSnapLines({ vertical: [], horizontal: [] });
   };
 
   // Redimensionamiento
@@ -403,9 +638,9 @@ const ElementRenderer = ({
 
   // Funciones del toolbar contextual
   const handleEdit = () => {
-    if (element.type === 'text' || element.type === 'heading') {
+    if (element.type === 'text' || element.type === 'heading' || element.type === 'button') {
       setEditing(true);
-      setEditValue(element.props?.content || '');
+      setEditValue(element.type === 'button' ? (element.props?.text || '') : (element.props?.content || ''));
       setTimeout(() => inputRef.current && inputRef.current.focus(), 0);
     }
   };
@@ -423,14 +658,20 @@ const ElementRenderer = ({
 
   // Guardar edición
   const saveEdit = () => {
-    updateElement(element.id, { 
-      props: { ...element.props, content: editValue } 
-    });
+    if (element.type === 'button') {
+      updateElement(element.id, { 
+        props: { ...element.props, text: editValue } 
+      });
+    } else {
+      updateElement(element.id, { 
+        props: { ...element.props, content: editValue } 
+      });
+    }
     setEditing(false);
   };
 
   const cancelEdit = () => {
-    setEditValue(element.props?.content || '');
+    setEditValue(element.type === 'button' ? (element.props?.text || '') : (element.props?.content || ''));
     setEditing(false);
   };
 
@@ -506,24 +747,67 @@ const ElementRenderer = ({
         );
       
       case 'button':
+        if (editing) {
+          return (
+            <EditInput
+              ref={inputRef}
+              value={editValue}
+              onChange={e => setEditValue(e.target.value)}
+              onBlur={saveEdit}
+              onKeyDown={e => {
+                if (e.key === 'Enter') saveEdit();
+                if (e.key === 'Escape') cancelEdit();
+              }}
+              placeholder="Texto del botón..."
+            />
+          );
+        }
         return (
           <ButtonElement 
             variant={element.props?.variant}
             styles={element.styles}
             onClick={handleButtonClick}
+            onDoubleClick={handleEdit}
           >
             {element.props?.text || 'Botón'}
           </ButtonElement>
         );
       
       case 'image':
-        return (
-          <ImageElement 
-            src={element.props?.src || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=400&fit=crop'} 
-            alt={element.props?.alt || 'Imagen'}
-            styles={element.styles}
-          />
-        );
+        const src = element.props?.src || '';
+        if (src.startsWith('data:image/svg+xml')) {
+          // Extraer el contenido SVG puro
+          let svgContent = '';
+          try {
+            const base64 = src.split(',')[1];
+            svgContent = atob(base64);
+          } catch (e) {
+            svgContent = '';
+          }
+          return (
+            <div
+              style={{ width: '100%', height: 'auto', maxHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              dangerouslySetInnerHTML={{ __html: svgContent }}
+            />
+          );
+        } else if (src.endsWith('.svg')) {
+          // Si es un archivo .svg por URL
+          return (
+            <object
+              data={src}
+              type="image/svg+xml"
+              style={{ width: '100%', height: 'auto', maxHeight: 400, display: 'block' }}
+            />
+          );
+        } else {
+          return (
+            <ImageElement 
+              src={src || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=400&fit=crop'} 
+              alt={element.props?.alt || 'Imagen'}
+              styles={element.styles}
+            />
+          );
+        }
       
       case 'section':
       case 'container':
@@ -541,14 +825,15 @@ const ElementRenderer = ({
             styles={element.styles}
             columns={element.props?.columns}
             gap={element.props?.gap}
+            size={element.size}
           >
             {renderChildren && element.children?.map(child => (
               <div
                 key={child.id}
                 style={{
                   position: 'absolute',
-                  left: child.position?.x || 0,
-                  top: child.position?.y || 0,
+                  left: child.position?.x ?? 0,
+                  top: child.position?.y ?? 0,
                   width: child.size?.width || 'auto',
                   height: child.size?.height || 'auto',
                   zIndex: selectedElementId === child.id ? 100 : 1,
@@ -564,10 +849,41 @@ const ElementRenderer = ({
                   onDelete={onDelete}
                   onDropSection={onDropSection}
                   renderChildren={false}
+                  realBounds={realBounds}
                 />
               </div>
             ))}
           </ElementComponent>
+        );
+      
+      case 'header':
+        return (
+          <HeaderElement styles={element.styles} size={element.size}>
+            {renderChildren && element.children?.map(child => (
+              <div
+                key={child.id}
+                style={{
+                  position: 'static',
+                  width: child.size?.width || 'auto',
+                  height: child.size?.height || 'auto',
+                  zIndex: selectedElementId === child.id ? 100 : 1,
+                  pointerEvents: 'auto'
+                }}
+              >
+                <ElementRenderer
+                  element={child}
+                  isSelected={selectedElementId === child.id}
+                  isPreviewMode={isPreviewMode}
+                  onClick={onClick}
+                  onMove={onMove}
+                  onDelete={onDelete}
+                  onDropSection={onDropSection}
+                  renderChildren={false}
+                  realBounds={realBounds}
+                />
+              </div>
+            ))}
+          </HeaderElement>
         );
       
       case 'rectangle':
