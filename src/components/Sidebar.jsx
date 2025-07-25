@@ -473,6 +473,7 @@ const Sidebar = () => {
       group: 'Layouts',
       icon: <Grid3X3 size={14} />,
       items: [
+        { id: 'header', icon: Settings, name: 'Header', description: 'Cabecera de navegación' },
         { id: 'container', icon: Layout, name: 'Contenedor', description: 'Agrupa elementos' },
         { id: 'grid', icon: Grid3X3, name: 'Grilla', description: 'Diseño en cuadrícula' },
         { id: 'columns', icon: Columns, name: 'Columnas', description: 'Diseño en columnas' }
@@ -496,15 +497,8 @@ const Sidebar = () => {
     }
   ];
 
-  const headerCategory = {
-    group: 'Especial',
-    icon: <Settings size={14} />, // Puedes cambiar el ícono si prefieres otro
-    items: [
-      { id: 'header', icon: Settings, name: 'Header', description: 'Cabecera fija y configurable' }
-    ]
-  };
-
-  const allCategories = [headerCategory, ...elementCategories];
+  // Header category eliminado - ahora se trata como un container normal
+  const allCategories = [...elementCategories];
 
   // Secciones predefinidas
   const predefinedSections = [
@@ -883,6 +877,8 @@ const Sidebar = () => {
           return { width: 'auto', height: 'auto' };
         case 'image':
           return { width: '300px', height: '200px' };
+        case 'header':
+          return { width: '100%', height: '80px' };
         case 'container':
         case 'section':
           return { width: '400px', height: '300px' };
@@ -904,14 +900,62 @@ const Sidebar = () => {
     
     const defaultSize = getDefaultSize(elementData.type);
     
-    addElement(
-      elementData.type,
-      elementData.props || {},
-      elementData.children || [],
-      elementData.styles || {},
-      { x: baseX, y: baseY },
-      defaultSize
-    );
+    // Configuración especial para headers
+    if (elementData.type === 'header') {
+      const headerProps = {
+        ...elementData.props
+      };
+      
+      const headerStyles = {
+        width: '100%',
+        height: '80px',
+        background: '#ffffff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 40px',
+        boxSizing: 'border-box',
+        border: '1px solid #e5e7eb',
+        ...elementData.styles
+      };
+      
+      const headerChildren = [
+        {
+          id: `logo-${Date.now()}`,
+          type: 'text',
+          props: { content: 'Logo' },
+          styles: { fontSize: '24px', fontWeight: '700', color: '#22223b' },
+          position: { x: 0, y: 0 },
+          size: { width: 'auto', height: 'auto' }
+        },
+        {
+          id: `nav-${Date.now()}`,
+          type: 'button',
+          props: { text: 'Inicio', linkToSection: null },
+          styles: { background: '#3b82f6', color: '#fff', fontWeight: '600', borderRadius: '8px', padding: '10px 24px' },
+          position: { x: 0, y: 0 },
+          size: { width: 'auto', height: '40px' }
+        }
+      ];
+      
+      addElement(
+        elementData.type,
+        headerProps,
+        headerChildren,
+        headerStyles,
+        { x: 0, y: 0 }, // Headers siempre empiezan en la esquina superior
+        defaultSize
+      );
+    } else {
+      addElement(
+        elementData.type,
+        elementData.props || {},
+        elementData.children || [],
+        elementData.styles || {},
+        { x: baseX, y: baseY },
+        defaultSize
+      );
+    }
   };
 
   const renderElementsTab = () => (

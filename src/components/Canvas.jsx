@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useEditor } from '../context/EditorContext';
 import RecursiveElementRenderer from './RecursiveElementRenderer';
+import SnapLines from './SnapLines';
 import { Home, Globe, Layers } from 'lucide-react';
 
 const CanvasContainer = styled.div`
@@ -300,6 +301,10 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
           zoom={zoom}
           height={canvasHeight}
           style={{ backgroundColor: canvasBackground }}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onClick={handleCanvasClick}
         >
           {!isPreviewMode && (
             <CanvasGrid />
@@ -336,6 +341,9 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
                 />
               )}
             </ElementsContainer>
+            
+            {/* Líneas de snap visuales */}
+            {!isPreviewMode && <SnapLines snapLines={snapLines} />}
           </CanvasContent>
         </CanvasArea>
       </CanvasWrapper>

@@ -79,7 +79,7 @@ export const generateSectionHTML = (section, allSections) => {
   const sectionHTML = elements.map(element => elementToHTML(element)).join('');
   
   return `
-    <section id="${section.slug}" class="website-section" style="position: relative; min-height: 100vh; width: 100%; padding: 40px;">
+    <section id="${section.slug}" class="website-section" style="position: relative; min-height: 100vh; width: 100%; max-width: 1450px; margin: 0 auto; padding: 40px;">
       ${sectionHTML}
     </section>
   `;
@@ -91,10 +91,6 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
   
   const sectionsHTML = sectionsArray.map(section => 
     generateSectionHTML(section, sections)
-  ).join('');
-  
-  const navigationItems = sectionsArray.map(section => 
-    `<li><a href="#${section.slug}" onclick="navigateToSection('${section.id}')">${section.name}</a></li>`
   ).join('');
   
   return `<!DOCTYPE html>
@@ -125,40 +121,6 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
             display: block;
         }
         
-        .navigation {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 15px 40px;
-            z-index: 1000;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        
-        .nav-list {
-            list-style: none;
-            display: flex;
-            gap: 30px;
-            align-items: center;
-        }
-        
-        .nav-list a {
-            text-decoration: none;
-            color: #374151;
-            font-weight: 500;
-            padding: 8px 16px;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-        }
-        
-        .nav-list a:hover,
-        .nav-list a.active {
-            background: #3b82f6;
-            color: white;
-        }
-        
         button[data-href] {
             cursor: pointer;
             border: none;
@@ -171,17 +133,11 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
         }
         
         .section-container {
-            margin-top: 80px;
+            width: 100%;
         }
     </style>
 </head>
 <body>
-    <nav class="navigation">
-        <ul class="nav-list">
-            ${navigationItems}
-        </ul>
-    </nav>
-    
     <div class="section-container">
         ${sectionsHTML}
     </div>
@@ -200,25 +156,10 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
                 targetSection.classList.add('active');
                 currentSection = sectionId;
                 
-                // Update navigation
-                updateNavigation();
-                
                 // Update URL without refresh
                 const sectionSlug = Object.values(${JSON.stringify(sections)}).find(s => s.id === sectionId)?.slug || 'home';
                 history.pushState({sectionId}, '', '#' + sectionSlug);
             }
-        }
-        
-        function updateNavigation() {
-            const navLinks = document.querySelectorAll('.nav-list a');
-            const currentSectionData = Object.values(${JSON.stringify(sections)}).find(s => s.id === currentSection);
-            
-            navLinks.forEach(link => {
-                link.classList.remove('active');
-                if (link.getAttribute('href') === '#' + (currentSectionData?.slug || 'home')) {
-                    link.classList.add('active');
-                }
-            });
         }
         
         // Handle browser back/forward

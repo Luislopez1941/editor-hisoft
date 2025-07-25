@@ -6,7 +6,7 @@ import { useEditor } from '../context/EditorContext';
 const ElementWrapper = styled.div`
   ${props => {
     // Elementos que se pueden mover libremente tienen posición absoluta
-    if (["section", "container", "card", "grid", "columns", "text", "heading", "button", "image"].includes(props.elementType)) {
+    if (["section", "container", "header", "card", "grid", "columns", "text", "heading", "button", "image"].includes(props.elementType)) {
       return `
         position: absolute;
         left: ${props.position?.x ?? 0}px;
@@ -154,21 +154,7 @@ const ContainerElement = styled.div`
   box-shadow: ${props => props.styles?.boxShadow || 'none'};
 `;
 
-const HeaderElement = styled.header`
-  width: ${props => props.size?.width || '100%'};
-  max-width: 1450px;
-  height: 80px;
-  background: ${props => props.styles?.background || '#ffffff'};
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: ${props => props.styles?.padding || '0 40px'};
-  box-sizing: border-box;
-  z-index: 1000;
-  position: absolute;
-  top: 0;
-  left: 0;
-`;
+// HeaderElement eliminado - se trata como container normal
 
 // Grid Elements
 const GridElement = styled.div`
@@ -287,13 +273,41 @@ const ToolbarButton = styled.button`
 
 const ResizeHandle = styled.div`
   position: absolute;
-  width: 10px;
-  height: 10px;
   background: #3b82f6;
   border: 2px solid #fff;
-  border-radius: 50%;
   z-index: 1001;
   cursor: ${props => props.cursor || 'pointer'};
+  
+  ${props => {
+    if (props.$type === 'corner') {
+      return `
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      `;
+    } else if (props.$type === 'width') {
+      return `
+        width: 8px;
+        height: 20px;
+        border-radius: 4px;
+        border: 2px solid #fff;
+        background: #10b981;
+      `;
+    } else if (props.$type === 'height') {
+      return `
+        width: 20px;
+        height: 8px;
+        border-radius: 4px;
+        border: 2px solid #fff;
+        background: #f59e0b;
+      `;
+    }
+  }}
+  
+  &:hover {
+    transform: scale(1.2);
+    transition: transform 0.2s ease;
+  }
 `;
 
 const EditInput = styled.input`
@@ -323,6 +337,7 @@ const ElementRenderer = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+  const [resizeType, setResizeType] = useState(null); // 'corner', 'width', 'height'
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const elementRef = useRef(null);
@@ -339,25 +354,19 @@ const ElementRenderer = ({
     sections
   } = useEditor();
 
-  // Obtener altura del header
+  // Referencias al header eliminadas
   const safe = (v, fallback) => (typeof v === 'number' && !isNaN(v) && v >= 0 ? v : fallback);
   const safeWidth = safe(canvasWidth, 1200);
   const safeHeight = safe(canvasHeight, 800);
   const canvasLeft = safe(realBounds?.canvas?.left, 0);
   const canvasTop = safe(realBounds?.canvas?.top, 0);
-  const headerElement = elements.find(el => el.type === 'header');
-  let headerHeight = 0;
-  if (headerElement) {
-    const h = headerElement.size?.height || headerElement.styles?.height || 80;
-    headerHeight = typeof h === 'string' ? parseInt(h) : h;
-    if (isNaN(headerHeight) || headerHeight < 0) headerHeight = 80;
-  }
+  
   // Definir padding igual que en CanvasArea
   const CANVAS_PADDING = 40;
   // Limites duros del canvas-area (UNIFICADOS)
   const leftLimit = 0;
   const rightLimit = safeWidth;
-  const topLimit = headerHeight; // solo header, sin padding extra
+  const topLimit = 0; // sin header automático
   const bottomLimit = safeHeight - CANVAS_PADDING;
   const limitsValid = rightLimit - leftLimit > 50 && bottomLimit - topLimit > 50;
 
@@ -367,7 +376,7 @@ const ElementRenderer = ({
   const inputRef = useRef(null);
 
   // Determinar si es movible/editable
-  const isMovable = ["section", "container", "columns", "card", "grid", "text", "heading", "button", "image"].includes(element.type);
+  const isMovable = ["section", "container", "header", "columns", "card", "grid", "text", "heading", "button", "image"].includes(element.type);
 
   // Función para calcular snap automático y líneas activas
   const calculateSnapPosition = (newX, newY) => {
@@ -402,17 +411,7 @@ const ElementRenderer = ({
       snappedY = topLimit;
       if (!activeHorizontalLines.includes(topLimit)) activeHorizontalLines.push(topLimit);
     }
-    // Snap sugerido: si hay header, sugerir alineación justo debajo y a la izquierda
-    if (headerElement) {
-      if (Math.abs(snappedY - topLimit) < tolerance) {
-        snappedY = topLimit;
-        activeHorizontalLines.push(topLimit);
-      }
-      if (Math.abs(snappedX - leftLimit) < tolerance) {
-        snappedX = leftLimit;
-        activeVerticalLines.push(leftLimit);
-      }
-    }
+         // Código del header eliminado - ya no hay referencias
     // Centro, otros elementos, etc. (igual que antes)
     const canvasCenterX = canvasLeft + (canvasWidth || 1200) / 2;
     const canvasCenterY = canvasTop + (canvasHeight || 800) / 2;
@@ -431,8 +430,8 @@ const ElementRenderer = ({
         activeHorizontalLines.push(canvasCenterY);
       }
     }
-    elements.forEach(otherElement => {
-      if (otherElement.id === element.id || otherElement.type === 'header') return;
+         elements.forEach(otherElement => {
+       if (otherElement.id === element.id) return;
       const otherX = otherElement.position?.x || 0;
       const otherY = otherElement.position?.y || 0;
       const otherWidth = parseInt(otherElement.size?.width) || 100;
@@ -486,47 +485,90 @@ const ElementRenderer = ({
     if (snappedX < leftLimit) snappedX = leftLimit;
     if (snappedX + elementWidth > rightLimit) snappedX = rightLimit - elementWidth;
 
-    // 2. Snap magnético a otros elementos (bordes y centros)
-    elements.forEach(otherElement => {
-      if (otherElement.id === element.id) return;
-      const otherX = otherElement.position?.x || 0;
-      const otherY = otherElement.position?.y || 0;
-      const otherWidth = parseInt(otherElement.size?.width) || 100;
-      const otherHeight = parseInt(otherElement.size?.height) || 100;
-      const otherLeft = otherX;
-      const otherRight = otherX + otherWidth;
-      const otherCenterX = otherX + otherWidth / 2;
-      const otherTop = otherY;
-      const otherBottom = otherY + otherHeight;
-      const otherCenterY = otherY + otherHeight / 2;
-      // Snap horizontal (izquierda, derecha, centro)
-      if (Math.abs(snappedX - otherLeft) < tolerance) {
-        snappedX = otherLeft;
-        activeVerticalLines.push(otherLeft);
-      } else if (Math.abs((snappedX + elementWidth) - otherRight) < tolerance) {
-        snappedX = otherRight - elementWidth;
-        activeVerticalLines.push(otherRight);
-      } else if (Math.abs(snappedX + elementWidth / 2 - otherCenterX) < tolerance) {
-        snappedX = otherCenterX - elementWidth / 2;
-        activeVerticalLines.push(otherCenterX);
-      }
-      // Snap vertical (tope, fondo, centro)
-      if (Math.abs(snappedY - otherTop) < tolerance) {
-        snappedY = otherTop;
-        activeHorizontalLines.push(otherTop);
-      } else if (Math.abs((snappedY + elementHeight) - otherBottom) < tolerance) {
-        snappedY = otherBottom - elementHeight;
-        activeHorizontalLines.push(otherBottom);
-      } else if (Math.abs(snappedY + elementHeight / 2 - otherCenterY) < tolerance) {
-        snappedY = otherCenterY - elementHeight / 2;
-        activeHorizontalLines.push(otherCenterY);
-      }
-      // 3. Snap sugerido: si hay un elemento arriba, sugerir su borde inferior como tope
-      if (snappedY > otherBottom && Math.abs(snappedY - otherBottom) < tolerance) {
-        snappedY = otherBottom;
-        activeHorizontalLines.push(otherBottom);
-      }
-    });
+         // 2. Snap magnético a otros elementos (bordes y centros)
+     elements.forEach(otherElement => {
+       if (otherElement.id === element.id) return;
+       const otherX = otherElement.position?.x || 0;
+       const otherY = otherElement.position?.y || 0;
+       const otherWidth = parseInt(otherElement.size?.width) || 100;
+       const otherHeight = parseInt(otherElement.size?.height) || 100;
+       const otherLeft = otherX;
+       const otherRight = otherX + otherWidth;
+       const otherCenterX = otherX + otherWidth / 2;
+       const otherTop = otherY;
+       const otherBottom = otherY + otherHeight;
+       const otherCenterY = otherY + otherHeight / 2;
+       
+       // SNAP ESPECIAL PARA CONTENEDORES - centrado automático
+       const isContainer = ['container', 'header', 'section', 'grid', 'columns'].includes(otherElement.type);
+       if (isContainer) {
+         // Snap al centro del contenedor (más fuerte)
+         const centerTolerance = 15; // Mayor tolerancia para contenedores
+         
+         // Centro horizontal del contenedor
+         if (Math.abs(snappedX + elementWidth / 2 - otherCenterX) < centerTolerance) {
+           snappedX = otherCenterX - elementWidth / 2;
+           activeVerticalLines.push(otherCenterX);
+         }
+         
+         // Centro vertical del contenedor
+         if (Math.abs(snappedY + elementHeight / 2 - otherCenterY) < centerTolerance) {
+           snappedY = otherCenterY - elementHeight / 2;
+           activeHorizontalLines.push(otherCenterY);
+         }
+         
+         // Snap a las guías de tercios del contenedor
+         const oneThirdX = otherX + otherWidth / 3;
+         const twoThirdX = otherX + (otherWidth * 2) / 3;
+         const oneThirdY = otherY + otherHeight / 3;
+         const twoThirdY = otherY + (otherHeight * 2) / 3;
+         
+         if (Math.abs(snappedX + elementWidth / 2 - oneThirdX) < tolerance) {
+           snappedX = oneThirdX - elementWidth / 2;
+           activeVerticalLines.push(oneThirdX);
+         }
+         if (Math.abs(snappedX + elementWidth / 2 - twoThirdX) < tolerance) {
+           snappedX = twoThirdX - elementWidth / 2;
+           activeVerticalLines.push(twoThirdX);
+         }
+         if (Math.abs(snappedY + elementHeight / 2 - oneThirdY) < tolerance) {
+           snappedY = oneThirdY - elementHeight / 2;
+           activeHorizontalLines.push(oneThirdY);
+         }
+         if (Math.abs(snappedY + elementHeight / 2 - twoThirdY) < tolerance) {
+           snappedY = twoThirdY - elementHeight / 2;
+           activeHorizontalLines.push(twoThirdY);
+         }
+       }
+       
+       // Snap horizontal (izquierda, derecha, centro)
+       if (Math.abs(snappedX - otherLeft) < tolerance) {
+         snappedX = otherLeft;
+         activeVerticalLines.push(otherLeft);
+       } else if (Math.abs((snappedX + elementWidth) - otherRight) < tolerance) {
+         snappedX = otherRight - elementWidth;
+         activeVerticalLines.push(otherRight);
+       } else if (Math.abs(snappedX + elementWidth / 2 - otherCenterX) < tolerance) {
+         snappedX = otherCenterX - elementWidth / 2;
+         activeVerticalLines.push(otherCenterX);
+       }
+       // Snap vertical (tope, fondo, centro)
+       if (Math.abs(snappedY - otherTop) < tolerance) {
+         snappedY = otherTop;
+         activeHorizontalLines.push(otherTop);
+       } else if (Math.abs((snappedY + elementHeight) - otherBottom) < tolerance) {
+         snappedY = otherBottom - elementHeight;
+         activeHorizontalLines.push(otherBottom);
+       } else if (Math.abs(snappedY + elementHeight / 2 - otherCenterY) < tolerance) {
+         snappedY = otherCenterY - elementHeight / 2;
+         activeHorizontalLines.push(otherCenterY);
+       }
+       // 3. Snap sugerido: si hay un elemento arriba, sugerir su borde inferior como tope
+       if (snappedY > otherBottom && Math.abs(snappedY - otherBottom) < tolerance) {
+         snappedY = otherBottom;
+         activeHorizontalLines.push(otherBottom);
+       }
+     });
     // --- SOLO AL FINAL: limitar para que no se desborde ---
     if (limitsValid) {
       if (snappedX < leftLimit) snappedX = leftLimit;
@@ -590,8 +632,22 @@ const ElementRenderer = ({
     if (isResizing) {
       const deltaX = e.clientX - resizeStart.x;
       const deltaY = e.clientY - resizeStart.y;
-      let newWidth = Math.max(50, resizeStart.width + deltaX);
-      let newHeight = Math.max(30, resizeStart.height + deltaY);
+      
+      let newWidth = resizeStart.width;
+      let newHeight = resizeStart.height;
+      
+      // Redimensionar según el tipo de handle
+      if (resizeType === 'corner') {
+        newWidth = Math.max(50, resizeStart.width + deltaX);
+        newHeight = Math.max(30, resizeStart.height + deltaY);
+      } else if (resizeType === 'width') {
+        newWidth = Math.max(50, resizeStart.width + deltaX);
+        // Mantener altura original
+      } else if (resizeType === 'height') {
+        newHeight = Math.max(30, resizeStart.height + deltaY);
+        // Mantener ancho original
+      }
+      
       // SNAP HEADER A LA DERECHA
       if (element.type === 'header') {
         const left = element.position?.x ?? 0;
@@ -600,6 +656,7 @@ const ElementRenderer = ({
           newWidth = rightLimit - left;
         }
       }
+      
       updateElement(element.id, {
         size: { width: `${newWidth}px`, height: `${newHeight}px` }
       });
@@ -609,14 +666,16 @@ const ElementRenderer = ({
   const handleMouseUp = () => {
     setIsDragging(false);
     setIsResizing(false);
+    setResizeType(null);
     // Limpiar líneas de snap cuando termina el arrastre
     setSnapLines({ vertical: [], horizontal: [] });
   };
 
   // Redimensionamiento
-  const handleResizeStart = (e) => {
+  const handleResizeStart = (e, type = 'corner') => {
     e.stopPropagation();
     setIsResizing(true);
+    setResizeType(type);
     const rect = elementRef.current.getBoundingClientRect();
     setResizeStart({
       x: e.clientX,
@@ -868,33 +927,24 @@ const ElementRenderer = ({
         );
       
       case 'header':
+        // Headers ahora se tratan como containers normales
         return (
-          <HeaderElement styles={element.styles} size={element.size}>
+          <ContainerElement styles={element.styles}>
             {renderChildren && element.children?.map(child => (
-              <div
+              <ElementRenderer
                 key={child.id}
-                style={{
-                  position: 'static',
-                  width: child.size?.width || 'auto',
-                  height: child.size?.height || 'auto',
-                  zIndex: selectedElementId === child.id ? 100 : 1,
-                  pointerEvents: 'auto'
-                }}
-              >
-                <ElementRenderer
-                  element={child}
-                  isSelected={selectedElementId === child.id}
-                  isPreviewMode={isPreviewMode}
-                  onClick={onClick}
-                  onMove={onMove}
-                  onDelete={onDelete}
-                  onDropSection={onDropSection}
-                  renderChildren={false}
-                  realBounds={realBounds}
-                />
-              </div>
+                element={child}
+                isSelected={selectedElementId === child.id}
+                isPreviewMode={isPreviewMode}
+                onClick={onClick}
+                onMove={onMove}
+                onDelete={onDelete}
+                onDropSection={onDropSection}
+                renderChildren={true}
+                realBounds={realBounds}
+              />
             ))}
-          </HeaderElement>
+          </ContainerElement>
         );
       
       case 'rectangle':
@@ -1014,35 +1064,96 @@ const ElementRenderer = ({
         </ToolbarContextual>
       )}
       
-      {/* Handles de redimensionamiento */}
-      {isSelected && !isPreviewMode && isMovable && (
-        <>
-          <ResizeHandle 
-            style={{ bottom: -5, right: -5 }}
-            cursor="se-resize"
-            data-resize="br"
-            onMouseDown={handleResizeStart}
-          />
-          <ResizeHandle 
-            style={{ bottom: -5, left: -5 }}
-            cursor="sw-resize"
-            data-resize="bl"
-            onMouseDown={handleResizeStart}
-          />
-          <ResizeHandle 
-            style={{ top: -5, right: -5 }}
-            cursor="ne-resize"
-            data-resize="tr"
-            onMouseDown={handleResizeStart}
-          />
-          <ResizeHandle 
-            style={{ top: -5, left: -5 }}
-            cursor="nw-resize"
-            data-resize="tl"
-            onMouseDown={handleResizeStart}
-          />
-        </>
-      )}
+             {/* Handles de redimensionamiento estilo Illustrator */}
+       {isSelected && !isPreviewMode && isMovable && (
+         <>
+           {/* Handles de esquina (resize completo) */}
+           <ResizeHandle 
+             $type="corner"
+             style={{ bottom: -5, right: -5 }}
+             cursor="se-resize"
+             data-resize="br"
+             onMouseDown={(e) => handleResizeStart(e, 'corner')}
+             title="Redimensionar ancho y alto"
+           />
+           <ResizeHandle 
+             $type="corner"
+             style={{ bottom: -5, left: -5 }}
+             cursor="sw-resize"
+             data-resize="bl"
+             onMouseDown={(e) => handleResizeStart(e, 'corner')}
+             title="Redimensionar ancho y alto"
+           />
+           <ResizeHandle 
+             $type="corner"
+             style={{ top: -5, right: -5 }}
+             cursor="ne-resize"
+             data-resize="tr"
+             onMouseDown={(e) => handleResizeStart(e, 'corner')}
+             title="Redimensionar ancho y alto"
+           />
+           <ResizeHandle 
+             $type="corner"
+             style={{ top: -5, left: -5 }}
+             cursor="nw-resize"
+             data-resize="tl"
+             onMouseDown={(e) => handleResizeStart(e, 'corner')}
+             title="Redimensionar ancho y alto"
+           />
+           
+           {/* Handles de ancho (solo horizontal) */}
+           <ResizeHandle 
+             $type="width"
+             style={{ 
+               right: -4, 
+               top: '50%', 
+               transform: 'translateY(-50%)' 
+             }}
+             cursor="e-resize"
+             data-resize="width"
+             onMouseDown={(e) => handleResizeStart(e, 'width')}
+             title="Redimensionar solo ancho"
+           />
+           <ResizeHandle 
+             $type="width"
+             style={{ 
+               left: -4, 
+               top: '50%', 
+               transform: 'translateY(-50%)' 
+             }}
+             cursor="w-resize"
+             data-resize="width"
+             onMouseDown={(e) => handleResizeStart(e, 'width')}
+             title="Redimensionar solo ancho"
+           />
+           
+           {/* Handles de altura (solo vertical) */}
+           <ResizeHandle 
+             $type="height"
+             style={{ 
+               bottom: -4, 
+               left: '50%', 
+               transform: 'translateX(-50%)' 
+             }}
+             cursor="s-resize"
+             data-resize="height"
+             onMouseDown={(e) => handleResizeStart(e, 'height')}
+             title="Redimensionar solo altura"
+           />
+           <ResizeHandle 
+             $type="height"
+             style={{ 
+               top: -4, 
+               left: '50%', 
+               transform: 'translateX(-50%)' 
+             }}
+             cursor="n-resize"
+             data-resize="height"
+             onMouseDown={(e) => handleResizeStart(e, 'height')}
+             title="Redimensionar solo altura"
+           />
+         </>
+       )}
       
       {renderElement()}
     </ElementWrapper>

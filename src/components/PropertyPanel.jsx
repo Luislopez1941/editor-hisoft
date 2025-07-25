@@ -270,6 +270,9 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
         textAlign: selectedElement.styles?.textAlign || 'left',
         lineHeight: parseFloat(selectedElement.styles?.lineHeight) || 1.5,
         
+        // Vinculación a sección (para botones)
+        linkToSection: selectedElement.props?.linkToSection || null,
+        
         // Colores
         color: selectedElement.styles?.color || '#000000',
         background: selectedElement.styles?.background || 'transparent',
@@ -342,6 +345,14 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
       setProperties(prev => ({ ...prev, text: value }));
     }
     
+    // Actualizar vinculación a sección para botones
+    if (key === "linkToSection") {
+      updates.props = {
+        ...selectedElement.props,
+        linkToSection: value
+      };
+    }
+    
     // Actualizar estilos
     if (["fontSize", "fontWeight", "fontFamily", "textAlign", "lineHeight", "color", "background", "padding", "margin", "borderRadius", "border", "boxShadow"].includes(key)) {
       let styleValue = value;
@@ -402,57 +413,7 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
     );
   }
 
-  // Si es header, solo permitir editar altura y color de fondo
-  if (selectedElement.type === 'header') {
-    return (
-      <PanelContainer>
-        <PanelHeader>
-          <PanelTitle>Propiedades</PanelTitle>
-          <PanelSubtitle>Header fijo</PanelSubtitle>
-        </PanelHeader>
-        <PanelContent style={{ maxHeight: 'calc(100vh - 64px)', overflowY: 'auto' }}>
-          <PropertyGroup>
-            <GroupTitle>
-              <Palette size={16} />
-              Color de fondo
-            </GroupTitle>
-            <PropertyRow>
-              <PropertyLabel>Fondo:</PropertyLabel>
-              <ColorInput
-                type="color"
-                value={properties.background && properties.background.startsWith('#') ? properties.background : '#ffffff'}
-                onChange={(e) => updateProperty('background', e.target.value || 'transparent')}
-                disabled={isPreviewMode}
-              />
-              <PropertyInput
-                type="text"
-                value={properties.background || ''}
-                onChange={(e) => updateProperty('background', e.target.value || 'transparent')}
-                placeholder="transparent"
-                disabled={isPreviewMode}
-              />
-            </PropertyRow>
-          </PropertyGroup>
-          <PropertyGroup>
-            <GroupTitle>
-              <Maximize2 size={16} />
-              Altura
-            </GroupTitle>
-            <PropertyRow>
-              <PropertyLabel>Alto:</PropertyLabel>
-              <PropertyInput
-                type="number"
-                value={properties.height || 80}
-                onChange={(e) => updateProperty('height', e.target.value)}
-                disabled={isPreviewMode}
-              />
-              <span style={{ fontSize: '12px', color: '#6b7280' }}>px</span>
-            </PropertyRow>
-          </PropertyGroup>
-        </PanelContent>
-      </PanelContainer>
-    );
-  }
+  // Manejo especial del header eliminado - ahora se trata como elemento normal
 
   return (
     <PanelContainer>
