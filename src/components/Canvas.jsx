@@ -189,6 +189,7 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
     selectedElementId,
     selectElement,
     deleteElement,
+    addElement,
     canvasWidth,
     canvasHeight,
     zoom,
@@ -214,7 +215,6 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
       try {
         const section = JSON.parse(sectionData);
         if (section.elements && Array.isArray(section.elements)) {
-          const { addElement } = useEditor();
           section.elements.forEach(element => {
             addElement(
               element.type,
@@ -238,7 +238,6 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
           const x = e.clientX - canvasRect.left;
           const y = e.clientY - canvasRect.top;
           
-          const { addElement } = useEditor();
           addElement(
             element.type,
             element.props || {},

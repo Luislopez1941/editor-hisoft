@@ -294,12 +294,12 @@ const CatalogSection = ({ title = "Catálogo de Productos", subtitle = "Explora 
         get_unidades: false,
         for_vendedor: true,
         page: 1,
-        id_usuario: userId,
+        id_usuario: 3,
         light: true,
       };
       
       const result = await APIs.getArticlesForVendedor(data);
-      setProducts(result?.data || []);
+      setProducts(result);
     } catch (error) {
       console.error('Error loading products:', error);
       setProducts([]);
