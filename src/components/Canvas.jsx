@@ -214,8 +214,8 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
       try {
         const section = JSON.parse(sectionData);
         if (section.elements && Array.isArray(section.elements)) {
+          const { addElement } = useEditor();
           section.elements.forEach(element => {
-            const { addElement } = useEditor();
             addElement(
               element.type,
               element.props || {},

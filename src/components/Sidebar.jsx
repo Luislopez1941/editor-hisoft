@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useEditor } from '../context/EditorContext';
 import SectionManager from './SectionManager';
+import CatalogSection from './views/CatalogSection';
 
 const SidebarContainer = styled.div`
   display: flex;
@@ -503,6 +504,27 @@ const Sidebar = () => {
   // Secciones predefinidas
   const predefinedSections = [
     {
+      id: 'catalog',
+      name: 'Catálogo de Productos',
+      description: 'Sección interactiva con catálogo de productos por familias y colecciones',
+      tags: ['E-commerce', 'Productos'],
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+      preview: '🛍️',
+      elements: [
+        {
+          type: 'catalog-section',
+          props: {
+            title: 'Catálogo de Productos',
+            subtitle: 'Explora nuestra selección de productos'
+          },
+          styles: {
+            width: '100%',
+            minHeight: '500px'
+          }
+        }
+      ]
+    },
+    {
       id: 'hero',
       name: 'Hero Section',
       description: 'Sección principal con título, subtítulo y botón de acción',
@@ -852,8 +874,8 @@ const Sidebar = () => {
   };
 
   const handleDragStart = (e, elementData) => {
-    if (elementData.elements) {
-      // Es una sección predefinida
+    if (elementData.elements || elementData.isReactComponent) {
+      // Es una sección predefinida (incluyendo componentes React)
       e.dataTransfer.setData('section', JSON.stringify(elementData));
     } else {
       // Es un elemento individual
@@ -862,6 +884,24 @@ const Sidebar = () => {
   };
 
   const handleElementClick = (elementData) => {
+    // Manejar secciones predefinidas con componentes React
+    if (elementData.isReactComponent && elementData.elements) {
+      const sectionElement = elementData.elements[0];
+      const baseX = Math.random() * 200 + 100;
+      const baseY = Math.random() * 200 + 100;
+      const defaultSize = getDefaultSize(sectionElement.type);
+      
+      addElement(
+        sectionElement.type,
+        sectionElement.props || {},
+        sectionElement.children || [],
+        sectionElement.styles || {},
+        { x: baseX, y: baseY },
+        defaultSize
+      );
+      return;
+    }
+
     // Añadir elemento directamente al canvas
     const baseX = Math.random() * 200 + 100; // Posición aleatoria
     const baseY = Math.random() * 200 + 100;
@@ -882,6 +922,8 @@ const Sidebar = () => {
         case 'container':
         case 'section':
           return { width: '400px', height: '300px' };
+        case 'catalog-section':
+          return { width: '800px', height: '500px' };
         case 'grid':
         case 'columns':
           return { width: '500px', height: '300px' };

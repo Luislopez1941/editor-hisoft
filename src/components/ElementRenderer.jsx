@@ -2,11 +2,12 @@ import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { Move, Maximize2, Edit3, Trash2, Settings } from 'lucide-react';
 import { useEditor } from '../context/EditorContext';
+import CatalogSection from './views/CatalogSection';
 
 const ElementWrapper = styled.div`
   ${props => {
     // Elementos que se pueden mover libremente tienen posición absoluta
-    if (["section", "container", "header", "card", "grid", "columns", "text", "heading", "button", "image"].includes(props.elementType)) {
+    if (["section", "container", "header", "card", "grid", "columns", "text", "heading", "button", "image", "catalog-section"].includes(props.elementType)) {
       return `
         position: absolute;
         left: ${props.position?.x ?? 0}px;
@@ -956,6 +957,15 @@ const ElementRenderer = ({
       case 'triangle':
         return <TriangleElement styles={element.styles} />;
       
+      case 'catalog-section':
+        return (
+          <CatalogSection 
+            title={element.props?.title || 'Catálogo de Productos'}
+            subtitle={element.props?.subtitle || 'Explora nuestra selección de productos'}
+            {...element.props}
+          />
+        );
+
       case 'card':
         return (
           <CardElement styles={element.styles}>
