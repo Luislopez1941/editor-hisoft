@@ -334,7 +334,9 @@ const ElementRenderer = ({
     elements,
     canvasWidth,
     canvasHeight,
-    setSnapLines
+    setSnapLines,
+    setActiveSection,
+    sections
   } = useEditor();
 
   // Obtener altura del header
@@ -687,7 +689,16 @@ const ElementRenderer = ({
   const handleButtonClick = (e) => {
     e.stopPropagation();
     if (isPreviewMode) {
-      alert(`Navegando: ${element.props?.text || 'Botón'}`);
+      // Si el botón tiene una sección vinculada, navegar a ella
+      if (element.props?.linkToSection) {
+        if (sections[element.props.linkToSection]) {
+          setActiveSection(element.props.linkToSection);
+        } else {
+          alert(`Sección no encontrada: ${element.props.linkToSection}`);
+        }
+      } else {
+        alert(`Navegando: ${element.props?.text || 'Botón'}`);
+      }
     }
   };
 

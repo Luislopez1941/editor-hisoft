@@ -32,9 +32,11 @@ import {
   Maximize2,
   Minimize2,
   FileText,
-  Grid3X3
+  Grid3X3,
+  ExternalLink
 } from 'lucide-react';
 import { useEditor } from '../context/EditorContext';
+import { downloadWebsite, previewWebsite } from '../utils/exportUtils';
 
 const ToolbarContainer = styled.div`
   height: 64px;
@@ -293,7 +295,9 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
     showGuides,
     setShowGuides,
     canvasBackground,
-    setCanvasBackground
+    setCanvasBackground,
+    sections,
+    currentSection
   } = useEditor();
 
   // Estados para dropdowns
@@ -344,190 +348,12 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
   };
 
   const handleExportHTML = () => {
-    // Generar HTML del proyecto
-    const generateStyleString = (styles = {}, extra = {}) => {
-      // Convierte el objeto de estilos en un string CSS inline
-      return Object.entries({ ...styles, ...extra })
-        .filter(([_, v]) => v !== undefined && v !== null && v !== '')
-        .map(([k, v]) => `${k.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${v};`)
-        .join(' ');
-    };
+    downloadWebsite(sections, 'mi-sitio-web.html');
+    console.log('Sitio web multi-sección exportado exitosamente');
+  };
 
-    // Obtener padding y offset del canvas/área de trabajo
-    const CANVAS_PADDING = 40; // igual que en CanvasContainer
-    const CONTAINER_MAX_WIDTH = 1500;
-    const CONTAINER_BG = canvasBackground || '#fff';
-    const CONTAINER_RADIUS = 0;
-    const CANVAS_AREA_BG = canvasBackground || '#fff';
-    const CANVAS_AREA_RADIUS = 16;
-    // Calcular altura del header (si existe)
-    const headerElement = elements.find(e => e.type === 'header');
-    let headerHeight = 0;
-    if (headerElement) {
-      const h = headerElement.size?.height || headerElement.styles?.height || 80;
-      headerHeight = typeof h === 'string' ? parseInt(h) : h;
-      if (isNaN(headerHeight)) headerHeight = 80;
-    }
-
-    // Calcular el offset mínimo de todos los elementos para hacer posiciones relativas
-    const minX = Math.min(...elements.map(e => e.position?.x ?? 0), 0);
-    const minY = Math.min(...elements.map(e => e.position?.y ?? 0), 0);
-
-    const generateHTML = (elements, isRoot = true) => {
-      let html = '';
-      elements.forEach(element => {
-        // Estilos base
-        let baseStyles;
-        if (isRoot) {
-          if (element.type === 'header') {
-            baseStyles = {
-              position: 'absolute',
-              left: (element.position?.x == null || element.position?.x === false) ? '0px' : (element.position?.x + 'px'),
-              top: (element.position?.y == null || element.position?.y === false) ? '0px' : (element.position?.y + 'px'),
-              width: element.size?.width || '1450px',
-              height: element.size?.height || 'auto',
-            };
-          } else {
-            baseStyles = {
-              position: 'absolute',
-              left: (element.position?.x == null || element.position?.x === false) ? '0px' : (element.position?.x + 'px'),
-              top: (element.position?.y == null || element.position?.y === false) ? '0px' : (element.position?.y + 'px'),
-              width: element.size?.width || '1450px',
-              height: element.size?.height || 'auto',
-            };
-          }
-        } else {
-          baseStyles = {};
-        }
-        baseStyles = { ...baseStyles, ...element.styles };
-
-        // Quitar border-radius y padding de 20px por defecto en contenedores
-        if (["container", "section", "grid", "columns"].includes(element.type)) {
-          if (baseStyles.borderRadius === undefined || baseStyles.borderRadius === '12px' || baseStyles.borderRadius === '0' || baseStyles.borderRadius === 0) {
-            delete baseStyles.borderRadius;
-          }
-          if (baseStyles.padding === undefined || baseStyles.padding === '20px' || baseStyles.padding === '40px 20px' || baseStyles.padding === '80px 0') {
-            delete baseStyles.padding;
-          }
-        }
-        if (!('padding' in element.styles)) delete baseStyles.padding;
-        if (!('margin' in element.styles)) delete baseStyles.margin;
-
-        switch (element.type) {
-          case 'text':
-            html += `<div style="${generateStyleString(baseStyles)}">${element.props?.content || 'Texto'}</div>`;
-            break;
-          case 'heading':
-            const headingLevel = element.props?.level || 1;
-            html += `<h${headingLevel} style="${generateStyleString(baseStyles)}">${element.props?.content || 'Título'}</h${headingLevel}>`;
-            break;
-          case 'button':
-            if (!('background' in element.styles)) baseStyles.background = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
-            if (!('border' in element.styles)) baseStyles.border = 'none';
-            html += `<button style="${generateStyleString(baseStyles)}">${element.props?.text || 'Botón'}</button>`;
-            break;
-          case 'image':
-            html += `<img src="${element.props?.src || ''}" alt="${element.props?.alt || 'Imagen'}" style="${generateStyleString(baseStyles, { objectFit: element.styles?.objectFit || 'cover' })}">`;
-            break;
-          case 'container':
-          case 'section':
-          case 'grid':
-          case 'columns': {
-            if (!('display' in element.styles)) delete baseStyles.display;
-            if (!('alignItems' in element.styles)) delete baseStyles.alignItems;
-            if (!('justifyContent' in element.styles)) delete baseStyles.justifyContent;
-            html += `<div style="${generateStyleString(baseStyles)}">`;
-            if (element.children && element.children.length > 0) {
-              html += generateHTML(element.children, false);
-            }
-            html += '</div>';
-            break;
-          }
-          case 'card':
-            html += `<div style="${generateStyleString(baseStyles)}">`;
-            html += `<h3 style="margin:0 0 12px 0;font-size:24px;font-weight:700;color:#111827;font-family:'Inter',system-ui,sans-serif;">${element.props?.title || 'Título de la Tarjeta'}</h3>`;
-            html += `<p style="margin:0;font-size:16px;color:#6b7280;line-height:1.6;font-family:'Inter',system-ui,sans-serif;">${element.props?.content || 'Descripción de la tarjeta con información relevante.'}</p>`;
-            html += '</div>';
-            break;
-          default:
-            html += `<div style="${generateStyleString(baseStyles)}">Elemento ${element.type}</div>`;
-        }
-      });
-      return html;
-    };
-
-    // --- Generar HTML exportado ---
-    const getUsedFonts = (elements, fonts = new Set()) => {
-      elements.forEach(element => {
-        if (element.styles?.fontFamily) {
-          fonts.add(element.styles.fontFamily.replace(/['"]/g, ''));
-        }
-        if (element.children) getUsedFonts(element.children, fonts);
-      });
-      return fonts;
-    };
-
-    const usedFonts = Array.from(getUsedFonts(elements));
-    const googleFontLinks = usedFonts
-      .filter(font => [
-        'Roboto','Montserrat','Lato','Oswald','Poppins','Merriweather','Nunito','Raleway','Playfair Display','Fira Sans','Ubuntu','Quicksand','Rubik','Bebas Neue'
-      ].includes(font))
-      .map(font => `<link href="https://fonts.googleapis.com/css?family=${encodeURIComponent(font)}:400,700&display=swap" rel="stylesheet">`).join('\n');
-
-    const fullHTML = `<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Página Web Generada - HiPlot</title>
-    ${googleFontLinks}
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', system-ui, sans-serif;
-            background: ${canvasBackground};
-        }
-        .container {
-            position: relative;
-            width: 100%;
-            max-width: 1450px;
-            min-height: 800px;
-            margin: 0 auto;
-            background: ${CONTAINER_BG};
-            border-radius: ${CONTAINER_RADIUS}px;
-            box-shadow: none;
-            padding: 0;
-        }
-        .canvas-area {
-           width: 1450px;
-           position: relative;
-           border: 1px solid #e5e7eb;
-           padding: 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-      <div class="canvas-area">
-        ${generateHTML(elements)}
-      </div>
-    </div>
-</body>
-</html>`;
-
-    // Crear y descargar el archivo
-    const blob = new Blob([fullHTML], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'pagina-web-hiplot.html';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    console.log('HTML exportado exitosamente');
+  const handlePreviewWebsite = () => {
+    previewWebsite(sections);
   };
 
   const selectedElement = elements.find(el => el.id === selectedElementId);
@@ -742,13 +568,23 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
           {exportDropdownOpen && (
             <DropdownMenu>
               <DropdownItem onClick={() => {
+                handlePreviewWebsite();
+                setExportDropdownOpen(false);
+              }}>
+                <ExternalLink size={16} />
+                Vista Previa Web
+                <span style={{ fontSize: '12px', opacity: 0.7 }}>
+                  Abrir en nueva ventana
+                </span>
+              </DropdownItem>
+              <DropdownItem onClick={() => {
                 handleExportHTML();
                 setExportDropdownOpen(false);
               }}>
                 <FileText size={16} />
-                Exportar HTML
+                Exportar Sitio Web
                 <span style={{ fontSize: '12px', opacity: 0.7 }}>
-                  Archivo .html
+                  Archivo .html completo
                 </span>
               </DropdownItem>
               <DropdownItem onClick={() => {

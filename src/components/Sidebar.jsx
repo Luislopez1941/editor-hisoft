@@ -24,6 +24,7 @@ import {
   Upload
 } from 'lucide-react';
 import { useEditor } from '../context/EditorContext';
+import SectionManager from './SectionManager';
 
 const SidebarContainer = styled.div`
   display: flex;
@@ -443,6 +444,12 @@ const Sidebar = () => {
       description: 'Secciones prediseñadas'
     },
     { 
+      id: 'pages', 
+      icon: Layers, 
+      name: 'Páginas',
+      description: 'Gestionar secciones del sitio'
+    },
+    { 
       id: 'templates', 
       icon: Folder, 
       name: 'Plantillas',
@@ -731,10 +738,10 @@ const Sidebar = () => {
         },
         { 
           type: 'button', 
-          name: 'Botón de ventas', 
-          description: 'Redirige a la sección de ventas', 
-          props: { text: 'Ir a Ventas', variant: 'primary', onClick: () => setActiveCategory('sales') },
-          styles: { padding: '12px 24px', fontSize: '16px' }
+          name: 'Botón Secciones', 
+          description: 'Navega entre secciones del sitio', 
+          props: { text: 'Ir a Sección', variant: 'primary', linkToSection: null },
+          styles: { padding: '12px 24px', fontSize: '16px', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }
         }
       ],
       container: [
@@ -1062,6 +1069,10 @@ const Sidebar = () => {
     </>
   );
 
+  const renderPagesTab = () => (
+    <SectionManager />
+  );
+
   const renderTemplatesTab = () => (
     <>
       <CategoryPanel>
@@ -1231,6 +1242,7 @@ const Sidebar = () => {
         </>
       )}
       {!submenusCollapsed && activeTab === 'sections' && renderSectionsTab()}
+      {!submenusCollapsed && activeTab === 'pages' && renderPagesTab()}
       {!submenusCollapsed && activeTab === 'templates' && renderTemplatesTab()}
     </SidebarContainer>
   );

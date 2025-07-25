@@ -3,7 +3,17 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 const EditorContext = createContext();
 
 const initialState = {
-  elements: [],
+  // Secciones del sitio web
+  sections: {
+    'home': {
+      id: 'home',
+      name: 'Inicio',
+      slug: 'home',
+      elements: [],
+      isHome: true
+    }
+  },
+  activeSectionId: 'home',
   selectedElementId: null,
   canvasWidth: 1450,
   canvasHeight: 3000,
@@ -17,6 +27,61 @@ const initialState = {
 
 const editorReducer = (state, action) => {
   switch (action.type) {
+    case 'CREATE_SECTION':
+      const newSection = {
+        id: action.payload.id || `section-${Date.now()}`,
+        name: action.payload.name,
+        slug: action.payload.slug || action.payload.name.toLowerCase().replace(/\s+/g, '-'),
+        elements: [],
+        isHome: false
+      };
+      return {
+        ...state,
+        sections: {
+          ...state.sections,
+          [newSection.id]: newSection
+        },
+        activeSectionId: newSection.id,
+        history: [...state.history.slice(0, state.historyIndex + 1), state],
+        historyIndex: state.historyIndex + 1,
+      };
+
+    case 'DELETE_SECTION':
+      if (action.payload.id === 'home') {
+        console.warn('Cannot delete home section');
+        return state;
+      }
+      const { [action.payload.id]: deleted, ...remainingSections } = state.sections;
+      const newActiveSectionId = state.activeSectionId === action.payload.id ? 'home' : state.activeSectionId;
+      return {
+        ...state,
+        sections: remainingSections,
+        activeSectionId: newActiveSectionId,
+        history: [...state.history.slice(0, state.historyIndex + 1), state],
+        historyIndex: state.historyIndex + 1,
+      };
+
+    case 'UPDATE_SECTION':
+      return {
+        ...state,
+        sections: {
+          ...state.sections,
+          [action.payload.id]: {
+            ...state.sections[action.payload.id],
+            ...action.payload.updates
+          }
+        },
+        history: [...state.history.slice(0, state.historyIndex + 1), state],
+        historyIndex: state.historyIndex + 1,
+      };
+
+    case 'SET_ACTIVE_SECTION':
+      return {
+        ...state,
+        activeSectionId: action.payload.id,
+        selectedElementId: null, // Clear selection when changing sections
+      };
+
     case 'ADD_ELEMENT':
       const newElement = {
         id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -32,7 +97,13 @@ const editorReducer = (state, action) => {
       
       return {
         ...state,
-        elements: [...state.elements, newElement],
+        sections: {
+          ...state.sections,
+          [state.activeSectionId]: {
+            ...state.sections[state.activeSectionId],
+            elements: [...state.sections[state.activeSectionId].elements, newElement]
+          }
+        },
         selectedElementId: newElement.id,
         history: [...state.history.slice(0, state.historyIndex + 1), state],
         historyIndex: state.historyIndex + 1,
@@ -43,7 +114,13 @@ const editorReducer = (state, action) => {
       if (action.payload.id === '__REORDER__' && action.payload.updates.elements) {
         return {
           ...state,
-          elements: action.payload.updates.elements,
+          sections: {
+            ...state.sections,
+            [state.activeSectionId]: {
+              ...state.sections[state.activeSectionId],
+              elements: action.payload.updates.elements
+            }
+          },
           history: [...state.history.slice(0, state.historyIndex + 1), state],
           historyIndex: state.historyIndex + 1,
         };
@@ -67,7 +144,13 @@ const editorReducer = (state, action) => {
       
       return {
         ...state,
-        elements: updateElementRecursive(state.elements, action.payload.id, action.payload.updates),
+        sections: {
+          ...state.sections,
+          [state.activeSectionId]: {
+            ...state.sections[state.activeSectionId],
+            elements: updateElementRecursive(state.sections[state.activeSectionId].elements, action.payload.id, action.payload.updates)
+          }
+        },
         history: [...state.history.slice(0, state.historyIndex + 1), state],
         historyIndex: state.historyIndex + 1,
       };
@@ -90,7 +173,13 @@ const editorReducer = (state, action) => {
       
       return {
         ...state,
-        elements: deleteElementRecursive(state.elements, action.payload.id),
+        sections: {
+          ...state.sections,
+          [state.activeSectionId]: {
+            ...state.sections[state.activeSectionId],
+            elements: deleteElementRecursive(state.sections[state.activeSectionId].elements, action.payload.id)
+          }
+        },
         selectedElementId: state.selectedElementId === action.payload.id ? null : state.selectedElementId,
         history: [...state.history.slice(0, state.historyIndex + 1), state],
         historyIndex: state.historyIndex + 1,
@@ -132,7 +221,13 @@ const editorReducer = (state, action) => {
       
       return {
         ...state,
-        elements: moveElementRecursive(state.elements, action.payload.id, action.payload),
+        sections: {
+          ...state.sections,
+          [state.activeSectionId]: {
+            ...state.sections[state.activeSectionId],
+            elements: moveElementRecursive(state.sections[state.activeSectionId].elements, action.payload.id, action.payload)
+          }
+        },
         history: [...state.history.slice(0, state.historyIndex + 1), state],
         historyIndex: state.historyIndex + 1,
       };
@@ -156,7 +251,13 @@ const editorReducer = (state, action) => {
       
       return {
         ...state,
-        elements: resizeElementRecursive(state.elements, action.payload.id, action.payload.size),
+        sections: {
+          ...state.sections,
+          [state.activeSectionId]: {
+            ...state.sections[state.activeSectionId],
+            elements: resizeElementRecursive(state.sections[state.activeSectionId].elements, action.payload.id, action.payload.size)
+          }
+        },
       };
 
     case 'SET_ZOOM':
@@ -189,7 +290,13 @@ const editorReducer = (state, action) => {
       console.log('Cargando plantilla con elementos:', action.payload.elements);
       return {
         ...state,
-        elements: action.payload.elements,
+        sections: {
+          ...state.sections,
+          [state.activeSectionId]: {
+            ...state.sections[state.activeSectionId],
+            elements: action.payload.elements
+          }
+        },
         selectedElementId: null,
         history: [...state.history.slice(0, state.historyIndex + 1), state],
         historyIndex: state.historyIndex + 1,
@@ -199,7 +306,13 @@ const editorReducer = (state, action) => {
       console.log('Limpiando canvas - eliminando todos los elementos');
       return {
         ...state,
-        elements: [],
+        sections: {
+          ...state.sections,
+          [state.activeSectionId]: {
+            ...state.sections[state.activeSectionId],
+            elements: []
+          }
+        },
         selectedElementId: null,
         history: [...state.history.slice(0, state.historyIndex + 1), state],
         historyIndex: state.historyIndex + 1,
@@ -265,6 +378,39 @@ function normalizeElements(elements) {
 
 export const EditorProvider = ({ children }) => {
   const [state, dispatch] = useReducer(editorReducer, initialState);
+
+  // Sección functions
+  const createSection = (name, slug) => {
+    dispatch({
+      type: 'CREATE_SECTION',
+      payload: { name, slug },
+    });
+  };
+
+  const deleteSection = (id) => {
+    dispatch({
+      type: 'DELETE_SECTION',
+      payload: { id },
+    });
+  };
+
+  const updateSection = (id, updates) => {
+    dispatch({
+      type: 'UPDATE_SECTION',
+      payload: { id, updates },
+    });
+  };
+
+  const setActiveSection = (id) => {
+    dispatch({
+      type: 'SET_ACTIVE_SECTION',
+      payload: { id },
+    });
+  };
+
+  // Computed values
+  const currentSection = state.sections[state.activeSectionId];
+  const elements = currentSection ? currentSection.elements : [];
 
   const addElement = (type, props = {}, children = [], styles = {}, position, size) => {
     console.log('Agregando elemento:', { type, props, children, styles, position, size });
@@ -423,16 +569,18 @@ export const EditorProvider = ({ children }) => {
 
   React.useEffect(() => {
     // Eliminar headers duplicados automáticamente
-    const headers = state.elements.filter(el => el.type === 'header');
+    const currentSection = state.sections[state.activeSectionId];
+    if (!currentSection) return;
+    const headers = currentSection.elements.filter(el => el.type === 'header');
+    // Si hay más de un header, deja solo el primero
     if (headers.length > 1) {
-      // Dejar solo el primero
       const keepId = headers[0].id;
-      const filtered = state.elements.filter(el => el.type !== 'header' || el.id === keepId);
+      const filtered = currentSection.elements.filter(el => el.type !== 'header' || el.id === keepId);
       dispatch({ type: 'UPDATE_ELEMENT', payload: { id: '__REORDER__', updates: { elements: filtered } } });
       return;
     }
-    // Al iniciar o cuando cambian los elementos, si no existe header, agregarlo automáticamente
-    if (!headers.length && !headerAddedRef.current) {
+    // Solo agrega el header automáticamente si la sección está vacía
+    if (!headers.length && !headerAddedRef.current && currentSection.elements.length === 0) {
       const headerElement = {
         id: `element-header`,
         type: 'header',
@@ -514,10 +662,16 @@ export const EditorProvider = ({ children }) => {
     if (!headers.length) {
       headerAddedRef.current = false;
     }
-  }, [state.elements]);
+  }, [state.sections, state.activeSectionId]);
 
   const value = {
     ...state,
+    elements, // Current section elements
+    currentSection,
+    createSection,
+    deleteSection,
+    updateSection,
+    setActiveSection,
     addElement,
     updateElement,
     deleteElement,

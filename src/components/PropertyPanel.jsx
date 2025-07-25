@@ -15,6 +15,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { useEditor } from '../context/EditorContext';
+import SectionLinkSelector from './SectionLinkSelector';
 
 const PanelContainer = styled.div`
   width: 320px;
@@ -522,6 +523,15 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
                 disabled={isPreviewMode}
               />
             </PropertyRow>
+            
+            {/* Selector de sección para botones */}
+            {selectedElement.type === 'button' && (
+              <SectionLinkSelector
+                value={properties.linkToSection || null}
+                onChange={(sectionId) => updateProperty('linkToSection', sectionId)}
+                placeholder="Enlazar a sección..."
+              />
+            )}
           </PropertyGroup>
         )}
 
