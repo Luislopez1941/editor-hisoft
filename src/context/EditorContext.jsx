@@ -302,6 +302,17 @@ const editorReducer = (state, action) => {
         historyIndex: state.historyIndex + 1,
       };
 
+    case 'LOAD_PROJECT':
+      console.log('Cargando proyecto completo:', action.payload.sections);
+      return {
+        ...state,
+        sections: action.payload.sections,
+        activeSectionId: Object.keys(action.payload.sections)[0] || 'home',
+        selectedElementId: null,
+        history: [...state.history.slice(0, state.historyIndex + 1), state],
+        historyIndex: state.historyIndex + 1,
+      };
+
     case 'CLEAR_CANVAS':
       console.log('Limpiando canvas - eliminando todos los elementos');
       return {
@@ -499,6 +510,16 @@ export const EditorProvider = ({ children }) => {
     });
   };
 
+  const loadProject = (project) => {
+    console.log('Cargando proyecto:', project);
+    if (project.sections) {
+      dispatch({
+        type: 'LOAD_PROJECT',
+        payload: { sections: project.sections },
+      });
+    }
+  };
+
   const clearCanvas = () => {
     console.log('Limpiando canvas');
     dispatch({ type: 'CLEAR_CANVAS' });
@@ -531,6 +552,12 @@ export const EditorProvider = ({ children }) => {
       loadTemplate(template);
     };
 
+    const handleLoadProject = (event) => {
+      const { project } = event.detail;
+      console.log('Evento de carga de proyecto recibido:', project);
+      loadProject(project);
+    };
+
     const handleKeyboardShortcuts = (event) => {
       if (event.ctrlKey || event.metaKey) {
         switch (event.key) {
@@ -556,10 +583,12 @@ export const EditorProvider = ({ children }) => {
     };
 
     window.addEventListener('loadTemplate', handleLoadTemplate);
+    window.addEventListener('loadProject', handleLoadProject);
     document.addEventListener('keydown', handleKeyboardShortcuts);
     
     return () => {
       window.removeEventListener('loadTemplate', handleLoadTemplate);
+      window.removeEventListener('loadProject', handleLoadProject);
       document.removeEventListener('keydown', handleKeyboardShortcuts);
     };
   }, []);
@@ -585,6 +614,7 @@ export const EditorProvider = ({ children }) => {
     undo,
     redo,
     loadTemplate,
+    loadProject,
     clearCanvas,
     setCanvasSize,
     toggleGuides,

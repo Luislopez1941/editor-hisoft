@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { useEditor } from '../context/EditorContext';
 import { downloadWebsite, previewWebsite } from '../utils/exportUtils';
+import { exportProjectSimple } from '../utils/projectStorage';
 
 const ToolbarContainer = styled.div`
   height: 64px;
@@ -343,8 +344,34 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
   };
 
   const handleExport = () => {
-    // Implementar exportar
-    console.log('Exportando proyecto...');
+    try {
+      console.log('=== INICIO EXPORTACIÓN DESDE TOOLBAR ===');
+      console.log('1. Secciones disponibles:', Object.keys(sections));
+      
+      // Crear datos del proyecto para exportar
+      const projectData = {
+        name: 'Mi Proyecto Web',
+        description: 'Proyecto exportado desde el editor',
+        sections: sections,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        tags: ['exportado', 'editor'],
+        version: '1.0.0'
+      };
+      
+      console.log('2. Datos del proyecto preparados:', projectData);
+      
+      // Exportar usando la función simple
+      const result = exportProjectSimple(projectData, 'mi-proyecto-web.json');
+      
+      console.log('3. Exportación completada:', result);
+      console.log('=== FIN EXPORTACIÓN DESDE TOOLBAR ===');
+      
+    } catch (error) {
+      console.error('=== ERROR EN EXPORTACIÓN DESDE TOOLBAR ===');
+      console.error('Error completo:', error);
+      console.error('=== FIN ERROR ===');
+    }
   };
 
   const handleExportHTML = () => {

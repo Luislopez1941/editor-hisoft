@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Info, ExternalLink, Edit3, Plus, Home, DollarSign, Package, Puzzle, Smartphone, Inbox, Users, Megaphone } from 'lucide-react';
+import { Settings, Info, ExternalLink, Edit3, Plus, Home, DollarSign, Package, Puzzle, Smartphone, Inbox, Users, Megaphone, FolderOpen } from 'lucide-react';
 import WebsiteSelectionModal from './WebsiteSelectionModal';
 import '../Dashboard/Dashboard.css';
 
@@ -23,7 +23,7 @@ const WebsiteSummary = ({ onSwitchToEditor }) => {
 
   return (
     <>
-      <div style={{display: 'flex', justifyContent: 'flex-end', marginBottom: 24}}>
+      <div style={{display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 24}}>
         <button className="create-site-btn" style={{display: 'inline-flex', background: '#3D85C6', color: 'white', fontWeight: 700, fontSize: 16, padding: '12px 24px', borderRadius: 8, alignItems: 'center', gap: 8, zIndex: 9999}} onClick={() => setShowWebsiteModal(true)}>
           <Plus size={20} />
           Crear nuevo sitio

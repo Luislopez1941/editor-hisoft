@@ -25,6 +25,7 @@ import {
 import Website from '../Website/Website';
 import Sales from '../Sales/Sales';
 import WebsiteSummary from '../Website/WebsiteSummary';
+import WebsiteProjectManager from '../Website/WebsiteProjectManager';
 import Sidebar from '../Sidebar';
 import './Dashboard.css';
 
@@ -42,7 +43,7 @@ const Dashboard = ({ onSwitchToWebsiteManager }) => {
   };
 
   const handleWebsiteClick = () => {
-    setCurrentView('website-summary');
+    setCurrentView('website-project-manager');
   };
 
   const handleSalesClick = () => {
@@ -104,6 +105,11 @@ const Dashboard = ({ onSwitchToWebsiteManager }) => {
         />
         {/* Main Content */}
         <div className="dashboard-main">
+          {currentView === 'website-project-manager' && (
+            <WebsiteProjectManager
+              onSwitchToEditor={handleSwitchToEditor}
+            />
+          )}
           {currentView === 'website-summary' && <WebsiteSummary onSwitchToEditor={handleSwitchToEditor} />}
           {currentView === 'website' && <Website onBack={() => setCurrentView('website-summary')} onSwitchToEditor={() => setCurrentView('website')} />}
           {currentView === 'sales' && <Sales onBack={handleBackToMain} />}

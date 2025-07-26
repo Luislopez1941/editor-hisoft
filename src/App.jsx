@@ -87,13 +87,18 @@ const EditorView = ({ selectedElement, setSelectedElement, isPreviewMode, setIsP
 function App() {
   const [selectedElement, setSelectedElement] = useState(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'website-manager', 'editor'
+  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'editor'
 
   const handleSwitchToWebsiteManager = (type, template) => {
     if (type === 'edit') {
       setCurrentView('editor');
-    } else if (type === 'website') {
-      setCurrentView('website-manager');
+    } else if (type === 'load-project') {
+      setCurrentView('editor');
+      if (template) {
+        setTimeout(() => {
+          loadProject(template);
+        }, 100);
+      }
     } else {
       setCurrentView('editor');
       if (type === 'template' && template) {
@@ -120,10 +125,6 @@ function App() {
     setCurrentView('dashboard');
   };
 
-  const handleBackToWebsiteManager = () => {
-    setCurrentView('website-manager');
-  };
-
   const loadTemplate = (template) => {
     // Esta función se ejecutará después de que el EditorProvider esté montado
     // Usaremos un evento personalizado para comunicarnos con el contexto
@@ -133,31 +134,33 @@ function App() {
     window.dispatchEvent(event);
   };
 
-  // Si estamos en vista dashboard, mostrar solo el dashboard
-  if (currentView === 'dashboard') {
-    return <Dashboard onSwitchToWebsiteManager={handleSwitchToWebsiteManager} />;
-  }
+  const loadProject = (project) => {
+    // Esta función se ejecutará después de que el EditorProvider esté montado
+    // Usaremos un evento personalizado para comunicarnos con el contexto
+    const event = new CustomEvent('loadProject', { 
+      detail: { project } 
+    });
+    window.dispatchEvent(event);
+  };
 
-  // Si estamos en vista website-manager, mostrar el gestor de sitios web
-  if (currentView === 'website-manager') {
-    return (
-      <WebsiteManager 
-        onBack={handleBackToDashboard}
-        onSwitchToEditor={handleSwitchToEditor}
-      />
-    );
-  }
-
-  // Vista del editor (código original)
+  // Wrap all views with EditorProvider to ensure context is available
   return (
     <EditorProvider>
-      <EditorView 
-        selectedElement={selectedElement}
-        setSelectedElement={setSelectedElement}
-        isPreviewMode={isPreviewMode}
-        setIsPreviewMode={setIsPreviewMode}
-        onBackToDashboard={handleBackToDashboard}
-      />
+      {/* Si estamos en vista dashboard, mostrar solo el dashboard */}
+      {currentView === 'dashboard' && (
+        <Dashboard onSwitchToWebsiteManager={handleSwitchToWebsiteManager} />
+      )}
+
+      {/* Vista del editor */}
+      {currentView === 'editor' && (
+        <EditorView 
+          selectedElement={selectedElement}
+          setSelectedElement={setSelectedElement}
+          isPreviewMode={isPreviewMode}
+          setIsPreviewMode={setIsPreviewMode}
+          onBackToDashboard={handleBackToDashboard}
+        />
+      )}
     </EditorProvider>
   );
 }

@@ -523,11 +523,6 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
                 disabled={isPreviewMode}
               >
                 <option value="Inter">Inter</option>
-                <option value="Arial">Arial</option>
-                <option value="Helvetica">Helvetica</option>
-                <option value="Times New Roman">Times New Roman</option>
-                <option value="Georgia">Georgia</option>
-                <option value="Courier New">Courier New</option>
                 <option value="Roboto">Roboto</option>
                 <option value="Montserrat">Montserrat</option>
                 <option value="Lato">Lato</option>
@@ -542,6 +537,11 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
                 <option value="Quicksand">Quicksand</option>
                 <option value="Rubik">Rubik</option>
                 <option value="Bebas Neue">Bebas Neue</option>
+                <option value="Arial">Arial (Sistema)</option>
+                <option value="Helvetica">Helvetica (Sistema)</option>
+                <option value="Times New Roman">Times New Roman (Sistema)</option>
+                <option value="Georgia">Georgia (Sistema)</option>
+                <option value="Courier New">Courier New (Sistema)</option>
               </PropertySelect>
             </PropertyRow>
             

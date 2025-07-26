@@ -43,7 +43,10 @@ const ElementWrapper = styled.div`
 const TextElement = styled.div`
   margin: ${props => props.styles?.margin || '0'};
   padding: ${props => props.styles?.padding || '16px'};
-  font-family: ${props => props.styles?.fontFamily || 'Inter, system-ui, sans-serif'};
+  font-family: ${props => {
+    const fontFamily = props.styles?.fontFamily || 'Inter';
+    return `"${fontFamily}", system-ui, sans-serif`;
+  }};
   font-size: ${props => props.styles?.fontSize || '16px'};
   font-weight: ${props => props.styles?.fontWeight || '400'};
   color: ${props => props.styles?.color || '#374151'};
@@ -59,7 +62,10 @@ const TextElement = styled.div`
 const HeadingElement = styled.h1`
   margin: ${props => props.styles?.margin || '0 0 16px 0'};
   padding: ${props => props.styles?.padding || '8px'};
-  font-family: ${props => props.styles?.fontFamily || 'Inter, system-ui, sans-serif'};
+  font-family: ${props => {
+    const fontFamily = props.styles?.fontFamily || 'Inter';
+    return `"${fontFamily}", system-ui, sans-serif`;
+  }};
   font-size: ${props => {
     const level = props.level || 1;
     const sizes = { 1: '36px', 2: '30px', 3: '24px', 4: '20px', 5: '18px', 6: '16px' };
@@ -80,7 +86,10 @@ const HeadingElement = styled.h1`
 const ButtonElement = styled.button`
   margin: ${props => props.styles?.margin || '8px 0'};
   padding: ${props => props.styles?.padding || '12px 24px'};
-  font-family: ${props => props.styles?.fontFamily || 'Inter, system-ui, sans-serif'};
+  font-family: ${props => {
+    const fontFamily = props.styles?.fontFamily || 'Inter';
+    return `"${fontFamily}", system-ui, sans-serif`;
+  }};
   font-size: ${props => props.styles?.fontSize || '16px'};
   font-weight: ${props => props.styles?.fontWeight || '600'};
   color: ${props => props.styles?.color || '#ffffff'};
