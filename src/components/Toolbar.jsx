@@ -175,7 +175,7 @@ const DropdownMenu = styled.div`
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   padding: 8px;
   min-width: 160px;
-  z-index: 1000;
+  z-index: 1001;
   margin-top: 4px;
 `;
 
@@ -640,7 +640,7 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
           <Palette size={20} />
         </ToolbarButton>
         {showColorPicker && (
-          <div style={{ position: 'absolute', top: 50, left: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 8, zIndex: 1000, boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }}>
+          <div style={{ position: 'absolute', top: 50, left: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 8, zIndex: 999, boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }}>
             <input
               type="color"
               value={canvasBackground}

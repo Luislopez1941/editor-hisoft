@@ -26,7 +26,7 @@ const PanelContainer = styled.div`
   display: flex;
   flex-direction: column;
   position: relative;
-  z-index: 50;
+  z-index: 99;
   flex-shrink: 0;
 `;
 
@@ -55,6 +55,7 @@ const PanelSubtitle = styled.p`
 const PanelContent = styled.div`
   flex: 1;
   padding: 16px;
+  padding-top: 24px;
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
@@ -217,6 +218,44 @@ const ToggleButton = styled.button`
   }
 `;
 
+const AutoFitButton = styled.button`
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Inter', system-ui, sans-serif;
+  
+  &:hover {
+    background: #e5e7eb;
+    border-color: #9ca3af;
+  }
+  
+  &:active {
+    background: #d1d5db;
+  }
+  
+  &:disabled {
+    background: #f9fafb;
+    color: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.6;
+    
+    &:hover {
+      background: #f9fafb;
+    }
+  }
+`;
+
 const RangeInput = styled.input`
   width: 100%;
   height: 4px;
@@ -256,15 +295,15 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
     if (selectedElement) {
       setProperties({
         // Posición y tamaño
-        x: selectedElement.position?.x ?? 0,
-        y: selectedElement.position?.y ?? 0,
-        width: parseInt(selectedElement.size?.width) || 200,
-        height: parseInt(selectedElement.size?.height) || 100,
+        x: selectedElement.position?.x !== undefined ? selectedElement.position.x : '',
+        y: selectedElement.position?.y !== undefined ? selectedElement.position.y : '',
+        width: selectedElement.size?.width ? parseInt(selectedElement.size?.width) : '',
+        height: selectedElement.size?.height ? parseInt(selectedElement.size?.height) : '',
         
         // Texto y tipografía
         content: selectedElement.props?.content || '',
         text: selectedElement.props?.text || '',
-        fontSize: parseInt(selectedElement.styles?.fontSize) || 16,
+        fontSize: selectedElement.styles?.fontSize ? parseInt(selectedElement.styles?.fontSize) : '',
         fontWeight: selectedElement.styles?.fontWeight || '400',
         fontFamily: selectedElement.styles?.fontFamily || 'Inter',
         textAlign: selectedElement.styles?.textAlign || 'left',
@@ -282,7 +321,7 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
         margin: selectedElement.styles?.margin || '0',
         
         // Bordes
-        borderRadius: selectedElement.styles?.borderRadius !== undefined ? parseInt(selectedElement.styles?.borderRadius) || 0 : 0,
+        borderRadius: selectedElement.styles?.borderRadius ? parseInt(selectedElement.styles?.borderRadius) : '',
         border: selectedElement.styles?.border || 'none',
         
         // Sombras
@@ -292,6 +331,7 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
   }, [selectedElement]);
 
   const updateProperty = (key, value) => {
+    console.log(`updateProperty: ${key} = "${value}"`);
     setProperties(prev => ({ ...prev, [key]: value }));
     
     if (!selectedElement) return;
@@ -300,7 +340,8 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
     
     // Actualizar posición
     if (["x", "y"].includes(key)) {
-      let v = parseInt(value) || 0;
+      let v = value === '' ? 0 : parseInt(value);
+      if (isNaN(v)) v = 0;
       if (key === "x") {
         const canvasW = selectedElement.canvasWidth || 1500;
         const elW = parseInt(selectedElement.size?.width) || 100;
@@ -319,13 +360,24 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
     
     // Actualizar tamaño
     if (["width", "height"].includes(key)) {
-      let v = parseInt(value) || 100;
-      if (key === "width" && v > 1450) v = 1450;
-      if (key === "height" && v < 30) v = 30;
+      console.log(`Actualizando ${key} con valor: "${value}"`);
+      let v;
+      if (value === 'auto' || value === '') {
+        v = 'auto';
+        console.log(`${key} se establece en "auto"`);
+      } else {
+        v = value === '' ? 0 : parseInt(value);
+        if (isNaN(v)) v = 0;
+        if (key === "width" && v > 1450) v = 1450;
+        if (key === "height" && v < 0) v = 0; // Permitir 0 pero no valores negativos
+        v = `${v}px`;
+        console.log(`${key} se establece en "${v}"`);
+      }
       updates.size = {
         ...selectedElement.size,
-        [key]: `${v}px`
+        [key]: v
       };
+      console.log(`Size actualizado:`, updates.size);
     }
     
     // Actualizar contenido
@@ -359,7 +411,9 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
       
       // Agregar unidades automáticamente
       if (["fontSize", "borderRadius"].includes(key)) {
-        styleValue = `${parseInt(value) || 0}px`;
+        let numValue = value === '' ? 0 : parseInt(value);
+        if (isNaN(numValue)) numValue = 0;
+        styleValue = `${numValue}px`;
       }
       
       updates.styles = {
@@ -435,15 +489,15 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
           <PropertyRow>
             <PropertyLabel>X:</PropertyLabel>
             <PropertyInput
-              type="number"
-              value={properties.x || 0}
+              type="text"
+              value={properties.x || ''}
               onChange={(e) => updateProperty('x', e.target.value)}
               disabled={isPreviewMode}
             />
             <PropertyLabel>Y:</PropertyLabel>
             <PropertyInput
-              type="number"
-              value={properties.y || 0}
+              type="text"
+              value={properties.y || ''}
               onChange={(e) => updateProperty('y', e.target.value)}
               disabled={isPreviewMode}
             />
@@ -452,18 +506,58 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
           <PropertyRow>
             <PropertyLabel>Ancho:</PropertyLabel>
             <PropertyInput
-              type="number"
-              value={properties.width || 200}
+              type="text"
+              value={properties.width || ''}
               onChange={(e) => updateProperty('width', e.target.value)}
               disabled={isPreviewMode}
             />
             <PropertyLabel>Alto:</PropertyLabel>
             <PropertyInput
-              type="number"
-              value={properties.height || 100}
+              type="text"
+              value={properties.height || ''}
               onChange={(e) => updateProperty('height', e.target.value)}
               disabled={isPreviewMode}
             />
+          </PropertyRow>
+          
+          {/* Botón de ajuste automático para elementos de texto */}
+          <PropertyRow>
+            <button
+              onClick={() => {
+                console.log('Botón ajustar al texto clickeado');
+                
+                if (!selectedElement) {
+                  console.log('No hay elemento seleccionado');
+                  return;
+                }
+                
+                // Simplemente establecer width y height en "auto"
+                console.log('Estableciendo width y height en auto');
+                updateProperty('width', 'auto');
+                updateProperty('height', 'auto');
+                
+                // Verificar que se aplicó correctamente
+                setTimeout(() => {
+                  console.log('Estado actual de propiedades:', properties);
+                  console.log('Elemento seleccionado:', selectedElement);
+                }, 100);
+              }}
+              disabled={isPreviewMode}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                background: '#f8fafc',
+                color: '#374151',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '500',
+                fontFamily: 'Inter, system-ui, sans-serif'
+              }}
+            >
+              📏 Ajustar al texto
+            </button>
           </PropertyRow>
         </PropertyGroup>
 
@@ -507,8 +601,8 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
             <PropertyRow>
               <PropertyLabel>Tamaño:</PropertyLabel>
               <PropertyInput
-                type="number"
-                value={properties.fontSize || 16}
+                type="text"
+                value={properties.fontSize || ''}
                 onChange={(e) => updateProperty('fontSize', e.target.value)}
                 disabled={isPreviewMode}
               />
@@ -675,6 +769,16 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
               placeholder="16px"
               disabled={isPreviewMode}
             />
+            <button
+              type="button"
+              style={{ marginLeft: 8, padding: '6px 10px', borderRadius: 6, border: '1px solid #d1d5db', background: '#f3f4f6', color: '#374151', fontSize: 12, cursor: 'pointer', transition: 'none' }}
+              onClick={() => updateProperty('padding', '0')}
+              disabled={isPreviewMode}
+              onMouseOver={e => e.currentTarget.style.background = '#f3f4f6'}
+              onMouseOut={e => e.currentTarget.style.background = '#f3f4f6'}
+            >
+              Quitar padding
+            </button>
           </PropertyRow>
           
           <PropertyRow>
@@ -691,12 +795,43 @@ const PropertyPanel = ({ isPreviewMode = false }) => {
           <PropertyRow>
             <PropertyLabel>Borde:</PropertyLabel>
             <PropertyInput
-              type="number"
-              value={properties.borderRadius || 0}
+              type="text"
+              value={properties.border || ''}
+              onChange={(e) => updateProperty('border', e.target.value)}
+              placeholder="1px solid #e5e7eb"
+              disabled={isPreviewMode}
+            />
+            <button
+              type="button"
+              style={{ marginLeft: 8, padding: '6px 10px', borderRadius: 6, border: '1px solid #d1d5db', background: '#f3f4f6', color: '#374151', fontSize: 12, cursor: 'pointer', transition: 'none' }}
+              onClick={() => updateProperty('border', 'none')}
+              disabled={isPreviewMode}
+              onMouseOver={e => e.currentTarget.style.background = '#f3f4f6'}
+              onMouseOut={e => e.currentTarget.style.background = '#f3f4f6'}
+            >
+              Quitar borde
+            </button>
+          </PropertyRow>
+          
+          <PropertyRow>
+            <PropertyLabel>Border Radius:</PropertyLabel>
+            <PropertyInput
+              type="text"
+              value={properties.borderRadius || ''}
               onChange={(e) => updateProperty('borderRadius', e.target.value)}
               disabled={isPreviewMode}
             />
             <span style={{ fontSize: '12px', color: '#6b7280' }}>px</span>
+            <button
+              type="button"
+              style={{ marginLeft: 8, padding: '6px 10px', borderRadius: 6, border: '1px solid #d1d5db', background: '#f3f4f6', color: '#374151', fontSize: 12, cursor: 'pointer', transition: 'none' }}
+              onClick={() => updateProperty('borderRadius', '0')}
+              disabled={isPreviewMode}
+              onMouseOver={e => e.currentTarget.style.background = '#f3f4f6'}
+              onMouseOut={e => e.currentTarget.style.background = '#f3f4f6'}
+            >
+              Sin radio
+            </button>
           </PropertyRow>
 
           <PropertyRow>

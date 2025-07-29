@@ -14,8 +14,8 @@ const ElementWrapper = styled.div`
         top: ${props.position?.y ?? 0}px;
         width: ${props.size?.width || 'auto'};
         height: ${props.size?.height || 'auto'};
-        min-width: ${props.elementType === 'section' ? '400px' : '100px'};
-        min-height: ${props.elementType === 'section' ? '200px' : '30px'};
+        min-width: ${props.elementType === 'section' ? '400px' : props.elementType === 'catalog-section' ? '800px' : '100px'};
+        min-height: ${props.elementType === 'section' ? '200px' : props.elementType === 'catalog-section' ? '600px' : '30px'};
         z-index: ${props.isDragging ? 1000 : props.isSelected ? 100 : 1};
       `;
     } else {
@@ -54,7 +54,7 @@ const TextElement = styled.div`
   line-height: ${props => props.styles?.lineHeight || '1.6'};
   background: ${props => props.styles?.background || 'transparent'};
   border-radius: ${props => props.styles?.borderRadius || '0'};
-  width: 100%;
+  width: fit-content;
   display: block;
   min-height: 24px;
 `;
@@ -77,7 +77,7 @@ const HeadingElement = styled.h1`
   line-height: ${props => props.styles?.lineHeight || '1.2'};
   background: ${props => props.styles?.background || 'transparent'};
   border-radius: ${props => props.styles?.borderRadius || '0'};
-  width: 100%;
+  width: fit-content;
   display: block;
   min-height: 32px;
 `;
@@ -255,7 +255,7 @@ const ToolbarContextual = styled.div`
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   padding: 8px;
-  z-index: 10000;
+  z-index: 999;
   border: 1px solid #e5e7eb;
   align-items: center;
 `;
@@ -348,6 +348,7 @@ const ElementRenderer = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [resizeType, setResizeType] = useState(null); // 'corner', 'width', 'height'
+  const [resizeHandle, setResizeHandle] = useState(null); // 'br', 'bl', 'tr', 'tl', 'left', 'right', 'top', 'bottom'
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const elementRef = useRef(null);
@@ -386,7 +387,7 @@ const ElementRenderer = ({
   const inputRef = useRef(null);
 
   // Determinar si es movible/editable
-  const isMovable = ["section", "container", "header", "columns", "card", "grid", "text", "heading", "button", "image"].includes(element.type);
+  const isMovable = ["section", "container", "header", "columns", "card", "grid", "text", "heading", "button", "image", "catalog-section"].includes(element.type);
 
   // Función para calcular snap automático y líneas activas
   const calculateSnapPosition = (newX, newY) => {
@@ -645,22 +646,57 @@ const ElementRenderer = ({
       
       let newWidth = resizeStart.width;
       let newHeight = resizeStart.height;
+      let newX = element.position?.x ?? 0;
+      let newY = element.position?.y ?? 0;
       
       // Redimensionar según el tipo de handle
       if (resizeType === 'corner') {
-        newWidth = Math.max(50, resizeStart.width + deltaX);
-        newHeight = Math.max(30, resizeStart.height + deltaY);
+        if (resizeHandle === 'br') {
+          // Esquina inferior derecha - solo cambiar tamaño
+          newWidth = Math.max(50, resizeStart.width + deltaX);
+          newHeight = Math.max(30, resizeStart.height + deltaY);
+        } else if (resizeHandle === 'bl') {
+          // Esquina inferior izquierda - cambiar ancho y posición X
+          newWidth = Math.max(50, resizeStart.width - deltaX);
+          newHeight = Math.max(30, resizeStart.height + deltaY);
+          newX = (element.position?.x ?? 0) + deltaX;
+        } else if (resizeHandle === 'tr') {
+          // Esquina superior derecha - cambiar alto y posición Y
+          newWidth = Math.max(50, resizeStart.width + deltaX);
+          newHeight = Math.max(30, resizeStart.height - deltaY);
+          newY = (element.position?.y ?? 0) + deltaY;
+        } else if (resizeHandle === 'tl') {
+          // Esquina superior izquierda - cambiar ambos y ambas posiciones
+          newWidth = Math.max(50, resizeStart.width - deltaX);
+          newHeight = Math.max(30, resizeStart.height - deltaY);
+          newX = (element.position?.x ?? 0) + deltaX;
+          newY = (element.position?.y ?? 0) + deltaY;
+        }
       } else if (resizeType === 'width') {
-        newWidth = Math.max(50, resizeStart.width + deltaX);
-        // Mantener altura original
+        // Handles de ancho
+        if (resizeHandle === 'left') {
+          // Handle izquierdo - cambiar ancho y posición X
+          newWidth = Math.max(50, resizeStart.width - deltaX);
+          newX = (element.position?.x ?? 0) + deltaX;
+        } else {
+          // Handle derecho - solo cambiar ancho
+          newWidth = Math.max(50, resizeStart.width + deltaX);
+        }
       } else if (resizeType === 'height') {
-        newHeight = Math.max(30, resizeStart.height + deltaY);
-        // Mantener ancho original
+        // Handles de altura
+        if (resizeHandle === 'top') {
+          // Handle superior - cambiar alto y posición Y
+          newHeight = Math.max(30, resizeStart.height - deltaY);
+          newY = (element.position?.y ?? 0) + deltaY;
+        } else {
+          // Handle inferior - solo cambiar alto
+          newHeight = Math.max(30, resizeStart.height + deltaY);
+        }
       }
       
       // SNAP HEADER A LA DERECHA
       if (element.type === 'header') {
-        const left = element.position?.x ?? 0;
+        const left = newX;
         const rightLimit = Math.min(safeWidth, 1450);
         if (Math.abs(left + newWidth - rightLimit) < 10) {
           newWidth = rightLimit - left;
@@ -668,6 +704,7 @@ const ElementRenderer = ({
       }
       
       updateElement(element.id, {
+        position: { x: newX, y: newY },
         size: { width: `${newWidth}px`, height: `${newHeight}px` }
       });
     }
@@ -677,6 +714,7 @@ const ElementRenderer = ({
     setIsDragging(false);
     setIsResizing(false);
     setResizeType(null);
+    setResizeHandle(null);
     // Limpiar líneas de snap cuando termina el arrastre
     setSnapLines({ vertical: [], horizontal: [] });
   };
@@ -686,6 +724,7 @@ const ElementRenderer = ({
     e.stopPropagation();
     setIsResizing(true);
     setResizeType(type);
+    setResizeHandle(e.target.dataset.resize);
     const rect = elementRef.current.getBoundingClientRect();
     setResizeStart({
       x: e.clientX,
@@ -968,11 +1007,22 @@ const ElementRenderer = ({
       
       case 'catalog-section':
         return (
-          <CatalogSection 
-            title={element.props?.title || 'Catálogo de Productos'}
-            subtitle={element.props?.subtitle || 'Explora nuestra selección de productos'}
-            {...element.props}
-          />
+          <div style={{
+            display: 'grid',
+            gridTemplateRows: 'auto 1fr',
+            width: '100%',
+            height: '100%',
+            overflow: 'hidden',
+            position: 'relative',
+            backgroundColor: 'white'
+          }}>
+            <CatalogSection 
+              isPreviewMode={isPreviewMode}
+              title={element.props?.title || 'Catálogo de Productos'}
+              subtitle={element.props?.subtitle || 'Explora nuestra selección de productos'}
+              {...element.props}
+            />
+          </div>
         );
 
       case 'card':
@@ -1129,7 +1179,7 @@ const ElementRenderer = ({
                transform: 'translateY(-50%)' 
              }}
              cursor="e-resize"
-             data-resize="width"
+             data-resize="right"
              onMouseDown={(e) => handleResizeStart(e, 'width')}
              title="Redimensionar solo ancho"
            />
@@ -1141,7 +1191,7 @@ const ElementRenderer = ({
                transform: 'translateY(-50%)' 
              }}
              cursor="w-resize"
-             data-resize="width"
+             data-resize="left"
              onMouseDown={(e) => handleResizeStart(e, 'width')}
              title="Redimensionar solo ancho"
            />
@@ -1155,7 +1205,7 @@ const ElementRenderer = ({
                transform: 'translateX(-50%)' 
              }}
              cursor="s-resize"
-             data-resize="height"
+             data-resize="bottom"
              onMouseDown={(e) => handleResizeStart(e, 'height')}
              title="Redimensionar solo altura"
            />
@@ -1167,7 +1217,7 @@ const ElementRenderer = ({
                transform: 'translateX(-50%)' 
              }}
              cursor="n-resize"
-             data-resize="height"
+             data-resize="top"
              onMouseDown={(e) => handleResizeStart(e, 'height')}
              title="Redimensionar solo altura"
            />

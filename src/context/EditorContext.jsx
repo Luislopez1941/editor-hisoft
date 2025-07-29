@@ -544,6 +544,75 @@ export const EditorProvider = ({ children }) => {
     dispatch({ type: 'SET_CANVAS_BACKGROUND', payload: color });
   };
 
+  // Función para copiar elemento
+  const copyElement = (id) => {
+    const element = findElementById(elements, id);
+    if (element) {
+      const elementCopy = JSON.stringify(element);
+      localStorage.setItem('copiedElement', elementCopy);
+      console.log('Elemento copiado:', element);
+    }
+  };
+
+  // Función para pegar elemento
+  const pasteElement = () => {
+    const copiedElementData = localStorage.getItem('copiedElement');
+    if (copiedElementData) {
+      try {
+        const copiedElement = JSON.parse(copiedElementData);
+        const newElement = {
+          ...copiedElement,
+          id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          position: {
+            x: (copiedElement.position?.x || 0) + 20,
+            y: (copiedElement.position?.y || 0) + 20
+          }
+        };
+        
+        addElement(
+          newElement.type,
+          newElement.props || {},
+          newElement.children || [],
+          newElement.styles || {},
+          newElement.position,
+          newElement.size || { width: 'auto', height: 'auto' }
+        );
+        
+        console.log('Elemento pegado:', newElement);
+      } catch (error) {
+        console.error('Error al pegar elemento:', error);
+      }
+    }
+  };
+
+  // Función para duplicar elemento
+  const duplicateElement = (id) => {
+    const element = findElementById(elements, id);
+    if (element) {
+      const newElement = {
+        ...element,
+        id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        position: {
+          x: (element.position?.x || 0) + 20,
+          y: (element.position?.y || 0) + 20
+        }
+      };
+      
+      addElement(
+        newElement.type,
+        newElement.props || {},
+        newElement.children || [],
+        newElement.styles || {},
+        newElement.position,
+        newElement.size || { width: 'auto', height: 'auto' }
+      );
+      
+      console.log('Elemento duplicado:', newElement);
+    }
+  };
+
+
+
   // Event listener para cargar plantillas desde App.jsx
   useEffect(() => {
     const handleLoadTemplate = (event) => {
@@ -570,13 +639,37 @@ export const EditorProvider = ({ children }) => {
               undo();
             }
             break;
+          case 'c':
+            event.preventDefault();
+            if (state.selectedElementId) {
+              copyElement(state.selectedElementId);
+            }
+            break;
+          case 'v':
+            event.preventDefault();
+            pasteElement();
+            break;
           case 'a':
             event.preventDefault();
             // Seleccionar todos los elementos (no implementado aún)
             break;
           case 'd':
             event.preventDefault();
-            // Duplicar elemento seleccionado (no implementado aún)
+            if (state.selectedElementId) {
+              duplicateElement(state.selectedElementId);
+            }
+            break;
+        }
+      } else {
+        // Atajos sin Ctrl/Cmd
+        switch (event.key) {
+          case 'Delete':
+          case 'Backspace':
+            // Solo borrar elemento si no está en un campo de texto
+            if (state.selectedElementId && !event.target.matches('input, textarea, [contenteditable="true"]')) {
+              event.preventDefault();
+              deleteElement(state.selectedElementId);
+            }
             break;
         }
       }
@@ -591,7 +684,7 @@ export const EditorProvider = ({ children }) => {
       window.removeEventListener('loadProject', handleLoadProject);
       document.removeEventListener('keydown', handleKeyboardShortcuts);
     };
-  }, []);
+  }, [state.selectedElementId, copyElement, pasteElement, duplicateElement, deleteElement, undo, redo]);
 
   // Código del header automático eliminado completamente
 
@@ -613,6 +706,9 @@ export const EditorProvider = ({ children }) => {
     setZoom,
     undo,
     redo,
+    copyElement,
+    pasteElement,
+    duplicateElement,
     loadTemplate,
     loadProject,
     clearCanvas,

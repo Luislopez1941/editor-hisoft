@@ -262,9 +262,9 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
   };
 
   const handleCanvasClick = (e) => {
-    if (e.target === e.currentTarget) {
-      selectElement(null);
-    }
+    console.log('Canvas click detected:', e.target);
+    // Deseleccionar cuando se hace clic en el canvas
+    selectElement(null);
   };
 
   const handleElementClick = (elementId) => {
