@@ -36,7 +36,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useEditor } from '../context/EditorContext';
-import { downloadWebsite, previewWebsite } from '../utils/exportUtils';
+import { downloadWebsite, previewWebsite } from '../utils/exportUtils.jsx';
 import { exportProjectSimple } from '../utils/projectStorage';
 
 const ToolbarContainer = styled.div`

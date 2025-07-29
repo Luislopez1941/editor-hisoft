@@ -11,6 +11,12 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
   const [loading, setLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalArticle, setModalArticle] = useState(null);
+  const [modalImgs, setModalImgs] = useState([]);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalOpciones, setModalOpciones] = useState([]);
+  const [modalActiveIndex, setModalActiveIndex] = useState(null);
+  const [modalCurrentImageIndex, setModalCurrentImageIndex] = useState(0);
   const { url_img } = useUserStore();
 
   const userId = 3; // Mock user ID - you can replace this with real user ID
@@ -167,6 +173,18 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
   useEffect(() => {
     loadFamilies();
   }, [userId]);
+  
+  // Ensure inputs work in canvas
+  useEffect(() => {
+    const inputs = document.querySelectorAll('input[type="text"], select, textarea');
+    inputs.forEach(input => {
+      input.style.pointerEvents = 'auto';
+      input.style.userSelect = 'text';
+      input.style.cursor = 'text';
+      input.style.zIndex = '1000';
+      input.style.position = 'relative';
+    });
+  }, []);
 
   // Manejar clic en familia
   const handleFamiliaClick = async (familiaId) => {
@@ -213,14 +231,267 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
     }
   };
 
-  const modal = async (x) => {
-    // Handle modal functionality here
-    console.log('Product selected:', x);
-    setIdA(i)
-    let newi = i + 1;
-    setI(newi);
-    // Note: SalesCard functionality removed as requested
-    // You can add your modal logic here
+  const handleViewProduct = async (product) => {
+    console.log('=== HANDLE VIEW PRODUCT ===');
+    console.log('Product:', product);
+    
+    setModalLoading(true);
+    setModalArticle(null);
+    setModalImgs([]);
+    setModalOpciones([]);
+    setModalCurrentImageIndex(0);
+    setIsModalOpen(true);
+    
+    const data = {
+      id: product.id,
+      activos: true,
+      nombre: '',
+      codigo: '',
+      familia: 0,
+      proveedor: 0,
+      materia_prima: 0,
+      get_sucursales: false,
+      get_imagenes: true,
+      get_proveedores: false,
+      get_max_mins: false,
+      get_precios: true,
+      get_combinaciones: true,
+      get_plantilla_data: true,
+      get_areas_produccion: true,
+      get_tiempos_entrega: false,
+      get_componentes: false,
+      get_stock: false,
+      get_web: false,
+      for_ventas: true,
+      get_unidades: true,
+      id_usuario: userId,
+      id_grupo_us: false
+    };
+    
+    try {
+      console.log('Modal data enviada:', data);
+      const response = await fetch('http://hiplot.dyndns.org:84/cotizador_api/index.php/mantenimiento/get_articulos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+      
+      const result = await response.json();
+      console.log('Modal response:', result);
+      
+      if (!result || result.length === 0) {
+        throw new Error('No se encontraron artículos');
+      }
+      
+      const art = result[0];
+      console.log('Modal artículo cargado:', art);
+      
+      let plantillaData = art.plantilla_data || [];
+      plantillaData = plantillaData.map((item) => ({
+        ...item,
+        id_plantillas_art_campos: item.id,
+      }));
+      
+      const articleData = { ...art, plantilla_data: plantillaData };
+      setModalArticle(articleData);
+      
+      // Configurar combinaciones
+      if (art.opciones_de_variacion2 && art.opciones_de_variacion2.length > 0) {
+        const combinacionesConfiguradas = art.opciones_de_variacion2.map((combinacion) => ({
+          combinacion: combinacion.combinacion,
+          OpcionSelected: "",
+          opciones: combinacion.opciones || []
+        }));
+        setModalOpciones(combinacionesConfiguradas);
+        console.log('Modal combinaciones configuradas:', combinacionesConfiguradas);
+      }
+      
+      // Cargar imágenes
+      try {
+        const imgResponse = await fetch(`http://hiplot.dyndns.org:84/api_dev/articulo_imagenes_get/${art.id}`);
+        const imgResult = await imgResponse.json();
+        console.log('Modal imágenes cargadas:', imgResult);
+        setModalImgs(imgResult || []);
+      } catch (error) {
+        console.error('Error cargando imágenes del modal:', error);
+        setModalImgs([]);
+      }
+      
+      setModalLoading(false);
+      console.log('✅ Modal artículo cargado exitosamente:', articleData);
+      
+    } catch (error) {
+      console.error('Error fetching modal data:', error);
+      setModalLoading(false);
+    }
+  };
+  
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setModalArticle(null);
+    setModalImgs([]);
+    setModalOpciones([]);
+    setModalCurrentImageIndex(0);
+  };
+  
+  const handleModalCombinacionClick = (index) => {
+    setModalActiveIndex(modalActiveIndex === index ? null : index);
+  };
+  
+  const handleModalOptionSelect = (combinacionIndex, optionId) => {
+    setModalOpciones(prev => {
+      const newOpciones = prev.map((combinacion, index) => {
+        if (index === combinacionIndex) {
+          const updatedOpciones = combinacion.opciones.map((option) => ({
+            ...option,
+            selected: option.id === optionId
+          }));
+          
+          const selectedOption = updatedOpciones.find((opt) => opt.id === optionId);
+          
+          return {
+            ...combinacion,
+            opciones: updatedOpciones,
+            OpcionSelected: selectedOption ? selectedOption.nombre : ""
+          };
+        }
+        return combinacion;
+      });
+      
+      // Verificar si hay al menos una opción seleccionada después de la actualización
+      const hasSelection = newOpciones.some((combinacion) => 
+        combinacion.OpcionSelected && combinacion.OpcionSelected !== ""
+      );
+      
+      // Si hay al menos una selección, ejecutar búsqueda automáticamente
+      if (hasSelection) {
+        setTimeout(() => {
+          BuscarArticuloPorCombinacion();
+        }, 100); // Pequeño delay para asegurar que el estado se actualice
+      }
+      
+      return newOpciones;
+    });
+    
+    setModalActiveIndex(null);
+  };
+  
+  // Función para buscar artículo por combinaciones
+  const fetch2 = async (selectedIds) => {
+    const data = {
+      id: 0,
+      activos: true,
+      nombre: '',
+      codigo: '',
+      familia: 0,
+      proveedor: 0,
+      materia_prima: 0,
+      get_sucursales: false,
+      get_imagenes: false,
+      get_proveedores: false,
+      get_max_mins: false,
+      get_precios: false,
+      get_combinaciones: true,
+      get_plantilla_data: true,
+      get_areas_produccion: true,
+      get_tiempos_entrega: false,
+      get_componentes: false,
+      get_stock: false,
+      get_web: false,
+      for_ventas: true,
+      get_unidades: true,
+      id_usuario: userId,
+      por_combinacion: true,
+      opciones: selectedIds,
+      id_articulo_variacion: modalArticle.id
+    };
+
+    try {
+      setModalLoading(true);
+      let resp = await fetch(
+        "http://hiplot.dyndns.org:84/cotizador_api/index.php/mantenimiento/get_articulos",
+        {
+          method: 'POST',
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        }
+      );
+      
+      const response = await resp.json();
+      
+      if (response && response.length > 0) {
+        const newArticle = response[0];
+        
+        // Actualizar el artículo con la nueva información
+        setModalArticle(newArticle);
+        
+        // Recargar imágenes del nuevo artículo
+        try {
+          const imgResponse = await fetch(`http://hiplot.dyndns.org:84/api_dev/articulo_imagenes_get/${newArticle.id}`);
+          const imgResult = await imgResponse.json();
+          setModalImgs(imgResult || []);
+        } catch (error) {
+          setModalImgs([]);
+        }
+        // Si el artículo tiene nuevas combinaciones, actualízalas
+        if (newArticle.opciones_de_variacion2 && newArticle.opciones_de_variacion2.length > 0) {
+          const combinacionesConfiguradas = newArticle.opciones_de_variacion2.map((combinacion) => ({
+            combinacion: combinacion.combinacion,
+            OpcionSelected: "",
+            opciones: combinacion.opciones || []
+          }));
+          setModalOpciones(combinacionesConfiguradas);
+        }
+      }
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // Verificar si todas las combinaciones tienen una opción seleccionada
+  const areAllCombinationsSelected = () => {
+    return modalOpciones.some((combinacion) => 
+      combinacion.OpcionSelected && combinacion.OpcionSelected !== ""
+    );
+  };
+
+  // Obtener los IDs de las opciones seleccionadas
+  const getSelectedIds = () => {
+    const selectedIds = [];
+    modalOpciones.forEach((combinacion) => {
+      const selectedOption = combinacion.opciones.find((option) => option.selected);
+      if (selectedOption) {
+        selectedIds.push(selectedOption.id);
+      }
+    });
+    return selectedIds;
+  };
+
+  const BuscarArticuloPorCombinacion = async () => {
+    if (!areAllCombinationsSelected()) {
+      return;
+    }
+
+    const selectedIds = getSelectedIds();
+    
+    if (!modalArticle?.id) {
+      return;
+    }
+    
+    await fetch2(selectedIds);
+  };
+
+  // Force input focus function
+  const forceInputFocus = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.target.focus();
+    e.target.select();
   };
   const [pendingResetPage, setPendingResetPage] = useState(false);
 
@@ -238,6 +509,692 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
 
   return (
     <>
+      <style>
+        {`
+          /* Product Actions */
+          .product-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+          }
+          
+          .view-product-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background-color: #e0241b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+          
+          .view-product-btn:hover {
+            background-color: #c01e1e;
+            transform: translateY(-1px);
+          }
+          
+          /* Modal Styles */
+          .product-modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 1rem;
+          }
+          
+          .product-modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            animation: modalSlideIn 0.3s ease-out;
+          }
+          
+          @keyframes modalSlideIn {
+            from {
+              opacity: 0;
+              transform: scale(0.9) translateY(-20px);
+            }
+            to {
+              opacity: 1;
+              transform: scale(1) translateY(0);
+            }
+          }
+          
+          .product-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e2e8f0;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          }
+          
+          .product-modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+          }
+          
+          .product-modal-close {
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          
+          .product-modal-close:hover {
+            background-color: #f1f5f9;
+            color: #0f172a;
+          }
+          
+          .product-modal-body {
+            display: flex;
+            max-height: calc(90vh - 80px);
+            overflow: hidden;
+          }
+          
+          .product-modal-image-section {
+            flex: 1;
+            max-width: 400px;
+            background: #f8fafc;
+            position: relative;
+          }
+          
+          .product-modal-image-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+          }
+          
+          .product-modal-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: opacity 0.3s ease;
+          }
+          
+          .product-modal-info-section {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+          }
+          
+          .product-header {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+          }
+          
+          .product-code {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+          
+          .product-name {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+            line-height: 1.2;
+          }
+          
+          .product-description {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 4px solid #941e1e;
+          }
+          
+          .product-description p {
+            font-size: 0.875rem;
+            color: #475569;
+            line-height: 1.6;
+            margin: 0;
+          }
+          
+          .product-details {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+          }
+          
+          .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+          }
+          
+          .detail-item:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+          }
+          
+          .detail-item.price {
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+            border-color: #10b981;
+          }
+          
+          .detail-item.price:hover {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+          }
+          
+          .detail-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+          
+          .detail-value {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #0f172a;
+          }
+          
+          .detail-value.price-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #10b981;
+          }
+          
+          /* Combinaciones */
+          .combinaciones {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 1.5rem;
+          }
+          
+          .combinaciones h4 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 1.5rem 0;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #e2e8f0;
+          }
+          
+          .combinaciones__container {
+            margin-bottom: 1.25rem;
+          }
+          
+          .container__combination {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 8px;
+            padding: 14px 16px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #e2e8f0;
+            background: white;
+            position: relative;
+          }
+          
+          .container__combination:hover {
+            border-color: #941e1e;
+            background-color: #fef2f2;
+          }
+          
+          .container__combination.selected {
+            background: #941e1e;
+            color: white;
+            border-color: #941e1e;
+          }
+          
+          .container__combination.selected::after {
+            content: "✓";
+            position: absolute;
+            right: 16px;
+            font-size: 1rem;
+            font-weight: bold;
+          }
+          
+          .combination_options {
+            margin-top: 0.75rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            animation: slideDown 0.2s ease;
+          }
+          
+          @keyframes slideDown {
+            from {
+              opacity: 0;
+              transform: translateY(-8px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          
+          .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.75rem;
+          }
+          
+          .option-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+            font-weight: 500;
+            text-align: center;
+            min-height: 40px;
+          }
+          
+          .option-item:hover {
+            border-color: #941e1e;
+            background: #fef2f2;
+          }
+          
+          .option-item.selected {
+            background: #941e1e;
+            color: white;
+            border-color: #941e1e;
+          }
+          
+          .option-item.selected::after {
+            content: "✓";
+            margin-left: 0.5rem;
+            font-weight: bold;
+          }
+          
+          .color-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+          }
+          
+          .color-swatch {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+          }
+          
+          .option-item:hover .color-swatch {
+            border-color: #941e1e;
+            transform: scale(1.1);
+          }
+          
+          .option-item.selected .color-swatch {
+            border-color: white;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+          }
+          
+          .option-text {
+            font-size: 0.875rem;
+            font-weight: 500;
+          }
+          
+          .tooltip-container {
+            position: relative;
+            display: inline-block;
+          }
+          
+          .tooltip-text {
+            visibility: hidden;
+            width: 120px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.75rem;
+          }
+          
+          .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+          }
+          
+          /* Responsive Modal */
+          @media (max-width: 768px) {
+            .product-modal-content {
+              max-width: 95vw;
+              max-height: 95vh;
+            }
+            
+            .product-modal-body {
+              flex-direction: column;
+              max-height: calc(95vh - 80px);
+            }
+            
+            .product-modal-image-section {
+              max-width: 100%;
+              max-height: 300px;
+            }
+            
+            .product-modal-image-container {
+              padding: 1rem;
+            }
+            
+            .product-modal-info-section {
+              padding: 1.5rem;
+              gap: 1rem;
+            }
+          }
+          
+          @media (max-width: 480px) {
+            .product-modal-header {
+              padding: 1rem 1.5rem;
+            }
+            
+            .product-modal-title {
+              font-size: 1.125rem;
+            }
+            
+            .product-modal-info-section {
+              padding: 1rem;
+            }
+            
+            .product-name {
+              font-size: 1.25rem;
+            }
+          }
+          
+          /* Canvas Input Fixes */
+          input[type="text"], input[type="search"], select, textarea {
+            pointer-events: auto !important;
+            user-select: text !important;
+            cursor: text !important;
+            z-index: 1000 !important;
+            position: relative !important;
+          }
+          
+          input[type="text"]:focus, input[type="search"]:focus, select:focus, textarea:focus {
+            outline: 2px solid #e0241b !important;
+            outline-offset: 2px !important;
+            z-index: 1001 !important;
+          }
+          
+          .productCatalog-search-input, .productCatalog-familia-search {
+            pointer-events: auto !important;
+            user-select: text !important;
+            cursor: text !important;
+            z-index: 1000 !important;
+            position: relative !important;
+          }
+          
+          .productCatalog-search-input:focus, .productCatalog-familia-search:focus {
+            outline: 2px solid #e0241b !important;
+            outline-offset: 2px !important;
+            z-index: 1001 !important;
+          }
+          
+          /* Force input events */
+          input, select, textarea {
+            pointer-events: auto !important;
+            user-select: text !important;
+            cursor: text !important;
+            z-index: 1000 !important;
+            position: relative !important;
+            background: white !important;
+          }
+          
+          /* Ensure buttons work in canvas */
+          button, .view-product-btn, .productCatalog-collection-btn {
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            z-index: 5 !important;
+          }
+          
+          /* Ensure clickable items work */
+          .productCatalog-familia-item {
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            z-index: 5 !important;
+          }
+          
+          /* Combinaciones styles */
+          .combinaciones {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 1.5rem;
+          }
+          
+          .combinaciones h4 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 1.5rem 0;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #e2e8f0;
+          }
+          
+          .combinaciones__container {
+            margin-bottom: 1.25rem;
+          }
+          
+          .container__combination {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 8px;
+            padding: 14px 16px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #e2e8f0;
+            background: white;
+            position: relative;
+          }
+          
+          .container__combination:hover {
+            border-color: #941e1e;
+            background-color: #fef2f2;
+          }
+          
+          .container__combination.selected {
+            background: #941e1e;
+            color: white;
+            border-color: #941e1e;
+          }
+          
+          .container__combination.selected::after {
+            content: "✓";
+            position: absolute;
+            right: 16px;
+            font-size: 1rem;
+            font-weight: bold;
+          }
+          
+          .combination_options {
+            margin-top: 0.75rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            animation: slideDown 0.2s ease;
+          }
+          
+          @keyframes slideDown {
+            from {
+              opacity: 0;
+              transform: translateY(-8px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          
+          .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.75rem;
+          }
+          
+          .option-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+            font-weight: 500;
+            text-align: center;
+            min-height: 40px;
+          }
+          
+          .option-item:hover {
+            border-color: #941e1e;
+            background: #fef2f2;
+          }
+          
+          .option-item.selected {
+            background: #941e1e;
+            color: white;
+            border-color: #941e1e;
+          }
+          
+          .option-item.selected::after {
+            content: "✓";
+            margin-left: 0.5rem;
+            font-weight: bold;
+          }
+          
+          .color-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+          }
+          
+          .color-swatch {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+          }
+          
+          .option-item:hover .color-swatch {
+            border-color: #941e1e;
+            transform: scale(1.1);
+          }
+          
+          .option-item.selected .color-swatch {
+            border-color: white;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+          }
+          
+          .option-text {
+            font-size: 0.875rem;
+            font-weight: 500;
+          }
+          
+          .search__sale-card {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background: #941e1e;
+            color: white;
+            padding: 0.875rem 1.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            margin-top: 1rem;
+            border: none;
+          }
+          
+          .search__sale-card:hover {
+            background: #7a1818;
+          }
+          
+          .search__sale-card.disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+          }
+          
+          .search__sale-card.disabled:hover {
+            background: #94a3b8;
+          }
+          
+          .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+          }
+          
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
      
         {/* Full Width Header */}
           <div style={{
@@ -306,6 +1263,10 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                   placeholder="Buscar familia..."
                   value={searchFamilia}
                   onChange={(e) => setSearchFamilia(e.target.value)}
+                  onFocus={(e) => e.target.style.outline = '2px solid #e0241b'}
+                  onBlur={(e) => e.target.style.outline = 'none'}
+                  onClick={forceInputFocus}
+                  onMouseDown={forceInputFocus}
                   className="productCatalog-familia-search"
                   style={{
                     width: '100%',
@@ -314,7 +1275,12 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                     borderRadius: '8px',
                     fontSize: '14px',
                     marginBottom: '16px',
-                    outline: 'none'
+                    outline: 'none',
+                    pointerEvents: 'auto',
+                    userSelect: 'text',
+                    cursor: 'text',
+                    position: 'relative',
+                    zIndex: 1000
                   }}
                 />
                 <div className='sidebar-familia-list' style={{
@@ -385,6 +1351,10 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                         placeholder="Buscar productos..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
+                        onFocus={(e) => e.target.style.outline = '2px solid #e0241b'}
+                        onBlur={(e) => e.target.style.outline = 'none'}
+                        onClick={forceInputFocus}
+                        onMouseDown={forceInputFocus}
                         className="productCatalog-search-input"
                         onKeyUp={(e) => e.key === 'Enter' && loadProductsByCodeOrDesc(e.currentTarget.value,1)}
                             style={{
@@ -394,7 +1364,12 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                               fontSize: '14px',
                               backgroundColor: 'white',
                               minWidth: '250px',
-                              outline: 'none'
+                              outline: 'none',
+                              pointerEvents: 'auto',
+                              userSelect: 'text',
+                              cursor: 'text',
+                              position: 'relative',
+                              zIndex: 1000
                             }}
                       />
                     </div>
@@ -403,20 +1378,27 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                             className='inputs__general' 
                             onChange={(e) => setBuscarPor(Number(e.target.value))} 
                             value={BuscarPor}
+                            onClick={forceInputFocus}
+                            onMouseDown={forceInputFocus}
                             style={{
                               padding: '8px 12px',
                               border: '1px solid #e5e7eb',
                               borderRadius: '8px',
                               fontSize: '14px',
                               backgroundColor: 'white',
-                              outline: 'none'
+                              outline: 'none',
+                              pointerEvents: 'auto',
+                              userSelect: 'text',
+                              cursor: 'pointer',
+                              position: 'relative',
+                              zIndex: 1000
                             }}
                           >
                         <option value="0">Por Descripción</option>
                         <option value="1">Codigo</option>
                       </select>
-                        </div>
-                      </div>
+                    </div>
+                  </div>
                     </div>
                   </div>
 
@@ -532,7 +1514,7 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                       <div 
                         className='item' 
                         key={i} 
-                        onClick={() => modal(x)} 
+                        onClick={() => handleViewProduct(x)} 
                         style={{
                           cursor: 'pointer',
                           backgroundColor: 'white',
@@ -560,7 +1542,7 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                               transition: 'transform 0.3s'
                             }}
                           />
-                        </div>
+                              </div>
                         <div className='content' style={{ padding: '12px' }}>
                           <p className='code' style={{
                             fontSize: '12px',
@@ -574,6 +1556,34 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                             margin: '0 0 8px 0',
                             lineHeight: '1.3'
                           }}>{x.descripcion}</p>
+                          
+                          <div className="product-actions" style={{
+                            display: 'flex',
+                            gap: '8px',
+                            marginTop: '12px'
+                          }}>
+                            <button 
+                              className="view-product-btn" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewProduct(x);
+                              }}
+                              style={{
+                                flex: 1,
+                                padding: '8px 12px',
+                                backgroundColor: '#e0241b',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '500',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                            >
+                              Ver Detalles
+                            </button>
+                          </div>
                       
                           {x.desabasto == true ?
                             <div className='desabasto' style={{
@@ -694,7 +1704,7 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                         >
                           SIGUIENTE
                         </button>
-                      </div>
+                </div>
                     </div>
                 </div>
                 )}
@@ -704,12 +1714,448 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
         </div>
 
         {/* Product Modal */}
-        {/* <ProductModal
-      isOpen={isModalOpen}
-      onClose={handleCloseModal}
-      product={selectedProduct}
-      url_img={url_img}
-    /> */}
+        {isModalOpen && (
+          <div 
+            className="product-modal-overlay" 
+            onClick={handleCloseModal}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1000,
+              padding: '1rem'
+            }}
+          >
+            <div 
+              className="product-modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'white',
+                borderRadius: '16px',
+                maxWidth: '900px',
+                width: '100%',
+                maxHeight: '90vh',
+                overflow: 'hidden',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+              }}
+            >
+              <div className="product-modal-header" style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '1.5rem 2rem',
+                borderBottom: '1px solid #e2e8f0',
+                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'
+              }}>
+                <h2 className="product-modal-title" style={{
+                  fontSize: '1.25rem',
+                  fontWeight: '700',
+                  color: '#0f172a',
+                  margin: 0
+                }}>
+                  Detalles del Producto
+                </h2>
+                <button 
+                  className="product-modal-close" 
+                  onClick={handleCloseModal}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    cursor: 'pointer',
+                    padding: '0.5rem',
+                    borderRadius: '8px',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="product-modal-body" style={{
+                display: 'flex',
+                maxHeight: 'calc(90vh - 80px)',
+                overflow: 'hidden'
+              }}>
+                <div className="product-modal-image-section" style={{
+                  flex: 1,
+                  maxWidth: '400px',
+                  background: '#f8fafc',
+                  position: 'relative'
+                }}>
+                  <div className="product-modal-image-container" style={{
+                    position: 'relative',
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '2rem'
+                  }}>
+                    {modalArticle && (
+                      <img
+                        src={`${url_img}${modalImgs.length > 0 ? modalImgs[modalCurrentImageIndex]?.img_url : modalArticle.imagen}`}
+                        alt={modalArticle.nombre}
+                        className="product-modal-image"
+                        style={{
+                          maxWidth: '100%',
+                          maxHeight: '100%',
+                          objectFit: 'contain',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}
+                        onError={(e) => {
+                          console.log('Error cargando imagen del modal:', e.currentTarget.src);
+                          e.currentTarget.src = `${url_img}${modalArticle.imagen}`;
+                        }}
+                      />
+                    )}
+                  </div>
+      </div>
+                
+                <div className="product-modal-info-section" style={{
+                  flex: 1,
+                  padding: '2rem',
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2rem'
+                }}>
+                  {modalLoading ? (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '2rem',
+                      color: '#64748b'
+                    }}>
+                      Cargando información del producto...
+                    </div>
+                  ) : modalArticle ? (
+                    <>
+                      <div className="product-header">
+                        <div className="product-code" style={{
+                          fontSize: '0.75rem',
+                          color: '#64748b',
+                          fontWeight: '600',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}>
+                          CÓDIGO: {modalArticle.codigo}
+                        </div>
+                        <h3 className="product-name" style={{
+                          fontSize: '1.75rem',
+                          fontWeight: '700',
+                          color: '#0f172a',
+                          margin: 0,
+                          lineHeight: '1.2'
+                        }}>
+                          {modalArticle.nombre}
+                        </h3>
+                      </div>
+                      
+                      <div className="product-description" style={{
+                        background: '#f8fafc',
+                        padding: '1.5rem',
+                        borderRadius: '12px',
+                        borderLeft: '4px solid #941e1e'
+                      }}>
+                        <p style={{
+                          fontSize: '0.875rem',
+                          color: '#475569',
+                          lineHeight: '1.6',
+                          margin: 0
+                        }}>
+                          {modalArticle.descripcion}
+                        </p>
+                      </div>
+                      
+                      <div className="product-details" style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '1rem'
+                      }}>
+                        {modalArticle.precio && (
+                          <div className="detail-item price" style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '1rem 1.5rem',
+                            background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+                            borderRadius: '8px',
+                            border: '1px solid #10b981'
+                          }}>
+                            <span className="detail-label" style={{
+                              fontSize: '0.875rem',
+                              fontWeight: '600',
+                              color: '#64748b',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em'
+                            }}>
+                              Precio
+                            </span>
+                            <span className="detail-value price-value" style={{
+                              fontSize: '1.25rem',
+                              fontWeight: '700',
+                              color: '#10b981'
+                            }}>
+                              ${modalArticle.precio.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {modalArticle.familia && (
+                          <div className="detail-item" style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '1rem 1.5rem',
+                            background: '#f8fafc',
+                            borderRadius: '8px',
+                            border: '1px solid #e2e8f0'
+                          }}>
+                            <span className="detail-label" style={{
+                              fontSize: '0.875rem',
+                              fontWeight: '600',
+                              color: '#64748b',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em'
+                            }}>
+                              Familia
+                            </span>
+                            <span className="detail-value" style={{
+                              fontSize: '0.875rem',
+                              fontWeight: '500',
+                              color: '#0f172a'
+                            }}>
+                              {modalArticle.familia}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {modalArticle.coleccion && (
+                          <div className="detail-item" style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '1rem 1.5rem',
+                            background: '#f8fafc',
+                            borderRadius: '8px',
+                            border: '1px solid #e2e8f0'
+                          }}>
+                            <span className="detail-label" style={{
+                              fontSize: '0.875rem',
+                              fontWeight: '600',
+                              color: '#64748b',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em'
+                            }}>
+                              Colección
+                            </span>
+                            <span className="detail-value" style={{
+                              fontSize: '0.875rem',
+                              fontWeight: '500',
+                              color: '#0f172a'
+                            }}>
+                              {modalArticle.coleccion}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Combinaciones */}
+                      {modalOpciones && modalOpciones.length > 0 && (
+                        <div className="combinaciones" style={{
+                          background: '#f8fafc',
+                          padding: '1.5rem',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0'
+                        }}>
+                          <h4 style={{
+                            fontSize: '1.25rem',
+                            fontWeight: '700',
+                            color: '#0f172a',
+                            margin: '0 0 1.5rem 0',
+                            paddingBottom: '0.75rem',
+                            borderBottom: '2px solid #e2e8f0'
+                          }}>
+                            Combinaciones Disponibles
+                          </h4>
+                          
+                          {modalOpciones.map((combinacion, index) => (
+                            <div key={index} className="combinaciones__container" style={{
+                              marginBottom: '1.25rem'
+                            }}>
+                              <div 
+                                className="container__combination"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleModalCombinacionClick(index);
+                                }}
+                                style={{
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  borderRadius: '8px',
+                                  padding: '14px 16px',
+                                  fontWeight: '500',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  border: '1px solid #e2e8f0',
+                                  background: 'white',
+                                  position: 'relative'
+                                }}
+                              >
+                                <span>
+                                  {combinacion.OpcionSelected && combinacion.OpcionSelected !== "" 
+                                    ? combinacion.OpcionSelected 
+                                    : combinacion.combinacion}
+                                </span>
+                              </div>
+                              
+                              {modalActiveIndex === index && (
+                                <div className="combination_options" style={{
+                                  marginTop: '0.75rem',
+                                  padding: '1rem',
+                                  background: 'white',
+                                  borderRadius: '8px',
+                                  border: '1px solid #e2e8f0'
+                                }}>
+                                  <div className="options-grid" style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                                    gap: '0.75rem'
+                                  }}>
+                                    {combinacion.opciones.map((option) => (
+                                      <div 
+                                        key={option.id}
+                                        className="option-item"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleModalOptionSelect(index, option.id);
+                                        }}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          padding: '0.625rem 0.875rem',
+                                          border: '1px solid #e2e8f0',
+                                          borderRadius: '6px',
+                                          cursor: 'pointer',
+                                          transition: 'all 0.2s ease',
+                                          background: 'white',
+                                          fontWeight: '500',
+                                          textAlign: 'center',
+                                          minHeight: '40px'
+                                        }}
+                                      >
+                                        {option.tipo === "2" ? (
+                                          <div className="color-option" style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: '100%'
+                                          }}>
+                                            <div className="tooltip-container" style={{
+                                              position: 'relative',
+                                              display: 'inline-block'
+                                            }}>
+                                              <div
+                                                className="color-swatch"
+                                                style={{
+                                                  width: '24px',
+                                                  height: '24px',
+                                                  border: '2px solid #e2e8f0',
+                                                  borderRadius: '6px',
+                                                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                                                  transition: 'all 0.3s ease',
+                                                  backgroundColor: option.color
+                                                }}
+                                              />
+                                              <span className="tooltip-text" style={{
+                                                visibility: 'hidden',
+                                                width: '120px',
+                                                backgroundColor: '#555',
+                                                color: '#fff',
+                                                textAlign: 'center',
+                                                borderRadius: '6px',
+                                                padding: '5px',
+                                                position: 'absolute',
+                                                zIndex: 1,
+                                                bottom: '125%',
+                                                left: '50%',
+                                                marginLeft: '-60px',
+                                                opacity: 0,
+                                                transition: 'opacity 0.3s',
+                                                fontSize: '0.75rem'
+                                              }}>
+                                                {option.nombre}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <span className="option-text" style={{
+                                            fontSize: '0.875rem',
+                                            fontWeight: '500'
+                                          }}>
+                                            {option.nombre}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Indicador de búsqueda automática */}
+                      {modalLoading && (
+                        <div 
+                          className="search__sale-card"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            background: '#941e1e',
+                            color: 'white',
+                            padding: '0.875rem 1.25rem',
+                            borderRadius: '8px',
+                            fontWeight: '500',
+                            fontSize: '0.875rem',
+                            marginTop: '1rem',
+                            border: 'none'
+                          }}
+                        >
+                          <div className="loading-spinner"></div>
+                          Buscando artículo con combinaciones...
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '2rem',
+                      color: '#dc2626'
+                    }}>
+                      No se pudo cargar la información del producto
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
      
 

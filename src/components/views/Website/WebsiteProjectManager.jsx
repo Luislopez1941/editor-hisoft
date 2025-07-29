@@ -32,7 +32,7 @@ import {
   getProjectStats
 } from '../../../utils/projectStorage';
 import { useEditor } from '../../../context/EditorContext';
-import { previewWebsite } from '../../../utils/exportUtils';
+import { previewWebsite } from '../../../utils/exportUtils.jsx';
 import WebsiteSelectionModal from './WebsiteSelectionModal';
 import './WebsiteProjectManager.css';
 
