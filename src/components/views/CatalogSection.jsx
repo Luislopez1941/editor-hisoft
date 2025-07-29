@@ -240,7 +240,7 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
     <>
      
         {/* Full Width Header */}
-        <div style={{
+          <div style={{
           backgroundColor: 'white',
           borderBottom: '1px solid #e5e7eb',
           width: '100%'
@@ -377,16 +377,16 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                     marginBottom: '16px'
                   }}>
                     {/* Search Controls */}
-                    <div className="productCatalog-search-container">
+                <div className="productCatalog-search-container">
                       <div className='row' style={{ display: 'flex', gap: '12px' }}>
-                        <div className='col-8 md-col-12'>
-                          <input
-                            type="text"
-                            placeholder="Buscar productos..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="productCatalog-search-input"
-                            onKeyUp={(e) => e.key === 'Enter' && loadProductsByCodeOrDesc(e.currentTarget.value,1)}
+                    <div className='col-8 md-col-12'>
+                      <input
+                        type="text"
+                        placeholder="Buscar productos..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="productCatalog-search-input"
+                        onKeyUp={(e) => e.key === 'Enter' && loadProductsByCodeOrDesc(e.currentTarget.value,1)}
                             style={{
                               padding: '8px 16px',
                               border: '1px solid #e5e7eb',
@@ -396,9 +396,9 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                               minWidth: '250px',
                               outline: 'none'
                             }}
-                          />
-                        </div>
-                        <div className='col-4 md-col-12'>
+                      />
+                    </div>
+                    <div className='col-4 md-col-12'>
                           <select 
                             className='inputs__general' 
                             onChange={(e) => setBuscarPor(Number(e.target.value))} 
@@ -412,9 +412,9 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                               outline: 'none'
                             }}
                           >
-                            <option value="0">Por Descripción</option>
-                            <option value="1">Codigo</option>
-                          </select>
+                        <option value="0">Por Descripción</option>
+                        <option value="1">Codigo</option>
+                      </select>
                         </div>
                       </div>
                     </div>
@@ -574,49 +574,7 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                             margin: '0 0 8px 0',
                             lineHeight: '1.3'
                           }}>{x.descripcion}</p>
-                          <div className='labels' style={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: '4px'
-                          }}>
-                            {x.bajo_pedido == true ?
-                              <div className='bajo-pedido' style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                padding: '2px 6px',
-                                fontSize: '12px',
-                                fontWeight: '500',
-                                backgroundColor: '#dbeafe',
-                                color: '#1d4ed8',
-                                borderRadius: '4px'
-                              }}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /><path d="M15 18H9" /><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" /><circle cx="17" cy="18" r="2" /><circle cx="7" cy="18" r="2" /></svg>
-                                <small>Pedido</small>
-                              </div>
-                              :
-                              ''
-                            }
-                            {x.vender_sin_stock == true ?
-                              <div className='vender-sin-stock' style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                padding: '2px 6px',
-                                fontSize: '12px',
-                                fontWeight: '500',
-                                backgroundColor: '#dcfce7',
-                                color: '#166534',
-                                borderRadius: '4px'
-                              }}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-shopping-bag"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>
-                                <small>S/Stock</small>
-                              </div>
-                              :
-                              ''
-                            }
-
-                          </div>
+                      
                           {x.desabasto == true ?
                             <div className='desabasto' style={{
                               display: 'inline-block',
@@ -688,7 +646,7 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                       alignItems: 'center',
                       gap: '12px'
                     }}>
-                      <div className='col-1'>
+                <div className='col-1'>
                         <button 
                           className='btn__general-primary' 
                           onClick={() => { setPage(page - 1); SearcherController = 1; }} 
@@ -707,8 +665,8 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                         >
                           ANTERIOR
                         </button>
-                      </div>
-                      <div className='col-10'>
+                </div>
+                <div className='col-10'>
                         <span style={{
                           padding: '6px 12px',
                           fontSize: '14px',
@@ -718,8 +676,8 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                         }}>
                           Página {page}
                         </span>
-                      </div>
-                      <div className='col-1'>
+                </div>
+                <div className='col-1'>
                         <button 
                           className='btn__general-primary' 
                           onClick={() => { setPage(page + 1); SearcherController = 1; }}
@@ -738,7 +696,7 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
                         </button>
                       </div>
                     </div>
-                  </div>
+                </div>
                 )}
               </div>
             </div>

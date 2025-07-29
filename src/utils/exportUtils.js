@@ -77,207 +77,134 @@ export const generateSectionHTML = (section, allSections) => {
         const catalogTitle = props?.title || 'Catálogo de Productos';
         const catalogSubtitle = props?.subtitle || 'Explora nuestra selección de productos';
         const catalogId = `catalog-${Math.random().toString(36).substr(2, 9)}`;
-        
+
         // For catalog sections, ensure proper positioning and override any conflicting styles
         // Use the actual position values from the element
         const catalogPositionX = typeof position.x === 'number' ? position.x : 0;
         const catalogPositionY = typeof position.y === 'number' ? position.y : 0;
         const catalogWidth = size.width || 'auto';
         const catalogHeight = size.height || 'auto';
-        
+
         const catalogStyles = `position: absolute; left: ${catalogPositionX}px; top: ${catalogPositionY}px; width: ${catalogWidth}; height: ${catalogHeight}; z-index: 1;`;
-        
+
         return `
-          <div id="${catalogId}" class="productCatalog-catalog" style="${catalogStyles}">
+          <div id="${catalogId}" style="${fullStyles}">
             <!-- Full Width Header -->
             <div style="background-color: white; border-bottom: 1px solid #e5e7eb; width: 100%;">
-              <div style="padding: 24px;">
-                <h1 style="font-size: 30px; font-weight: bold; color: #111827; margin: 0;">
-                  ${catalogTitle}
+              <div style="padding: 16px 24px;">
+                <h1 style="font-size: clamp(24px, 4vw, 30px); font-weight: bold; color: #111827; margin: 0;">
+                  ${props?.title || 'Catálogo de Productos'}
                 </h1>
-                <p style="color: #6b7280; margin-top: 8px; margin: 0;">
-                  ${catalogSubtitle}
+                <p style="color: #6b7280; margin-top: 8px; margin: 0; font-size: clamp(14px, 2.5vw, 16px);">
+                  ${props?.subtitle || 'Explora nuestra selección de productos'}
                 </p>
               </div>
             </div>
-
+            
             <!-- Main Layout with Sidebar and Content -->
             <div class="productCatalog-main-content" style="height: 100%; overflow: hidden;">
               <!-- Content Below Header -->
-              <div class="productCatalog-content-below-header" style="display: flex; width: 100%; overflow: hidden; height: 100%;">
-                <!-- Sidebar - Familias -->
-                <div class="productCatalog-sidebar" style="width: 256px; background-color: #f9fafb; border-right: 1px solid #e5e7eb; flex-shrink: 0; height: 100%; overflow: hidden; display: grid; grid-template-rows: auto 1fr;">
-                  <div class="productCatalog-sidebar-header" style="padding: 24px;">
-                    <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 16px;">FAMILIAS</h2>
-                  </div>
-                  <div class="productCatalog-familia-list" style="display: grid; height: 100%; grid-template-rows: auto 1fr; padding: 0px 24px 24px;">
-                    <input type="text" placeholder="Buscar familia..." class="productCatalog-familia-search" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; margin-bottom: 16px; outline: none;" />
-                    <div class="sidebar-familia-list" style="overflow-y: auto;">
-                      <div style="width: 100%; text-align: left; padding: 10px 12px; border-radius: 8px; transition: all 0.2s; fontSize: 14px; cursor: pointer; backgroundColor: #e0241b; color: white; boxShadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 4px;">
-                        <span>Todas las Familias</span>
-                      </div>
-                      <div style="width: 100%; text-align: left; padding: 10px 12px; border-radius: 8px; transition: all 0.2s; fontSize: 14px; cursor: pointer; backgroundColor: transparent; color: #374151; margin-bottom: 4px;">
-                        <span>ACCESORIO PARA CREDENCIALES</span>
-                      </div>
-                      <div style="width: 100%; text-align: left; padding: 10px 12px; border-radius: 8px; transition: all 0.2s; fontSize: 14px; cursor: pointer; backgroundColor: transparent; color: #374151; margin-bottom: 4px;">
-                        <span>ACTIVOS</span>
-                      </div>
-                      <div style="width: 100%; text-align: left; padding: 10px 12px; border-radius: 8px; transition: all 0.2s; fontSize: 14px; cursor: pointer; backgroundColor: transparent; color: #374151; margin-bottom: 4px;">
-                        <span>ANUNCIOS 3D Y MATERIALES</span>
-                      </div>
-                    </div>
-                  </div>
+              <div class="productCatalog-content-below-header" style="display: flex; flex-direction: column; width: 100%; overflow: hidden; height: 100%;">
+                <!-- Mobile Menu Toggle -->
+                <div class="productCatalog-mobile-toggle" style="display: none; padding: 12px 24px; background-color: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+                  <button id="${catalogId}-mobile-menu-btn" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background-color: #e0241b; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="3" y1="6" x2="21" y2="6"></line>
+                      <line x1="3" y1="12" x2="21" y2="12"></line>
+                      <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                    Familias
+                  </button>
                 </div>
-
-                <!-- Right Content -->
-                <div class="productCatalog-right-content" style="width: 100%; display: grid; grid-template-rows: auto 1fr;">
-                  <!-- Collections y Search -->
-                  <div class="productCatalog-collections-search-section" style="border-bottom: 1px solid #f3f4f6; background-color: white;">
-                    <div style="padding: 16px 24px;">
-                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <!-- Search Controls -->
-                        <div class="productCatalog-search-container">
-                          <div class="row" style="display: flex; gap: 12px;">
-                            <div class="col-8 md-col-12">
-                              <input type="text" placeholder="Buscar productos..." class="productCatalog-search-input" style="padding: 8px 16px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; background-color: white; min-width: 250px; outline: none;" />
-                            </div>
-                            <div class="col-4 md-col-12">
-                              <select class="inputs__general" style="padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; background-color: white; outline: none;">
-                                <option value="0">Por Descripción</option>
-                                <option value="1">Codigo</option>
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- Horizontal Collections -->
-                      <div class="productCatalog-collections-nav">
-                        <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px;">
-                          <button class="productCatalog-collection-btn active" style="padding: 8px 16px; border-radius: 8px; white-space: nowrap; transition: all 0.2s; font-size: 14px; font-weight: 500; border: none; cursor: pointer; background-color: #e0241b; color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                            Todas las Colecciones
-                          </button>
-                          <button class="productCatalog-collection-btn" style="padding: 8px 16px; border-radius: 8px; white-space: nowrap; transition: all 0.2s; font-size: 14px; font-weight: 500; border: none; cursor: pointer; background-color: #f3f4f6; color: #374151;">
-                            Credenciales TEST
-                          </button>
-                          <button class="productCatalog-collection-btn" style="padding: 8px 16px; border-radius: 8px; white-space: nowrap; transition: all 0.2s; font-size: 14px; font-weight: 500; border: none; cursor: pointer; background-color: #f3f4f6; color: #374151;">
-                            USB'S
-                          </button>
-                          <button class="productCatalog-collection-btn" style="padding: 8px 16px; border-radius: 8px; white-space: nowrap; transition: all 0.2s; font-size: 14px; font-weight: 500; border: none; cursor: pointer; background-color: #f3f4f6; color: #374151;">
-                            LLAVEROS
-                          </button>
-                          <button class="productCatalog-collection-btn" style="padding: 8px 16px; border-radius: 8px; white-space: nowrap; transition: all 0.2s; font-size: 14px; font-weight: 500; border: none; cursor: pointer; background-color: #f3f4f6; color: #374151;">
-                            TAZAS & TERMOS
-                          </button>
-                          <button class="productCatalog-collection-btn" style="padding: 8px 16px; border-radius: 8px; white-space: nowrap; transition: all 0.2s; font-size: 14px; font-weight: 500; border: none; cursor: pointer; background-color: #f3f4f6; color: #374151;">
-                            BOLSAS
-                          </button>
-                          <button class="productCatalog-collection-btn" style="padding: 8px 16px; border-radius: 8px; white-space: nowrap; transition: all 0.2s; font-size: 14px; font-weight: 500; border: none; cursor: pointer; background-color: #f3f4f6; color: #374151;">
-                            BOLIGRAFOS
-                          </button>
-                          <button class="productCatalog-collection-btn" style="padding: 8px 16px; border-radius: 8px; white-space: nowrap; transition: all 0.2s; font-size: 14px; font-weight: 500; border: none; cursor: pointer; background-color: #f3f4f6; color: #374151;">
-                            BRAZALETES TYVEK
-                          </button>
-                          <button class="productCatalog-collection-btn" style="padding: 8px 16px; border-radius: 8px; white-space: nowrap; transition: all 0.2s; font-size: 14px; font-weight: 500; border: none; cursor: pointer; background-color: #f3f4f6; color: #374151;">
-                            ROMPECABEZAS
-                          </button>
-                          <button class="productCatalog-collection-btn" style="padding: 8px 16px; border-radius: 8px; white-space: nowrap; transition: all 0.2s; font-size: 14px; font-weight: 500; border: none; cursor: pointer; background-color: #f3f4f6; color: #374151;">
-                            FOTOBOTONES
-                          </button>
-                          <button class="productCatalog-collection-btn" style="padding: 8px 16px; border-radius: 8px; white-space: nowrap; transition: all 0.2s; font-size: 14px; font-weight: 500; border: none; cursor: pointer; background-color: #f3f4f6; color: #374151;">
-                            VARIOS
-                          </button>
-                        </div>
+                
+                <!-- Desktop Layout -->
+                <div class="productCatalog-desktop-layout" style="display: flex; width: 100%; overflow: hidden; height: 100%;">
+                  <!-- Sidebar - Familias -->
+                  <div class="productCatalog-sidebar" style="width: 300px; background-color: #f9fafb; border-right: 1px solid #e5e7eb; flex-shrink: 0; height: 100%; overflow: hidden; display: grid; grid-template-rows: auto 1fr;">
+                    <div class="productCatalog-sidebar-header" style="padding: 20px 24px;">
+                      <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 16px;">FAMILIAS</h2>
+                    </div>
+                    <div class="productCatalog-familia-list" style="display: grid; height: 100%; grid-template-rows: auto 1fr; padding: 0px 15px 15px;">
+                      <input type="text" placeholder="Buscar familia..." id="${catalogId}-familia-search" class="productCatalog-familia-search" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; margin-bottom: 16px; outline: none;" />
+                      <div class="sidebar-familia-list" id="${catalogId}-families" style="overflow-y: auto;">
+                        <div class="productCatalog-loading" id="${catalogId}-families-loading" style="color: #6b7280; text-align: center; padding: 16px 0; font-size: 14px; display: none;">Cargando familias...</div>
                       </div>
                     </div>
                   </div>
 
-                  <!-- Products Section -->
-                  <div class="productCatalog-products-section" style="padding: 24px; height: 100%; display: grid; grid-template-rows: auto 1fr auto; overflow: auto;">
-                    <div class="productCatalog-products-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                      <h2 class="productCatalog-products-title" style="font-size: 20px; font-weight: 600; color: #111827; margin: 0;">
-                        PRODUCTOS - Todas las Colecciones
-                      </h2>
-                      <span class="productCatalog-products-count" style="font-size: 14px; color: #6b7280;">
-                        50 productos encontrados
-                      </span>
+                  <!-- Right Content -->
+                  <div class="productCatalog-right-content" style="width: 100%; display: grid; grid-template-rows: auto 1fr;">
+                    <!-- Collections y Search -->
+                    <div class="productCatalog-collections-search-section" style="border-bottom: 1px solid #f3f4f6; background-color: white;">
+                      <div style="padding: 16px 24px;">
+                        <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;">
+                          <!-- Search Controls -->
+                          <div class="productCatalog-search-container" style="display: flex; flex-direction: column; gap: 12px;">
+                            <div class="search-row" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                              <div class="search-input-container" style="flex: 1; min-width: 200px;">
+                                <input type="text" placeholder="Buscar productos..." id="${catalogId}-product-search" class="productCatalog-search-input" style="width: 100%; padding: 8px 16px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; background-color: white; outline: none;" />
+                              </div>
+                              <div class="search-select-container" style="min-width: 150px;">
+                                <select id="${catalogId}-search-type" class="inputs__general" style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; background-color: white; outline: none;">
+                                  <option value="0">Por Descripción</option>
+                                  <option value="1">Codigo</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Horizontal Collections -->
+                        <div class="productCatalog-collections-nav">
+                          <div id="${catalogId}-collections" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin;">
+                            <div class="productCatalog-loading" id="${catalogId}-collections-loading" style="color: #6b7280; font-size: 14px; display: none;">Cargando colecciones...</div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div class="productCatalog-products-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; overflow-y: auto;">
-                      <!-- Product Cards with Real Data Structure -->
-                      <div class="item" style="cursor: pointer; background-color: white; border: 1px solid #f3f4f6; border-radius: 12px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: auto;">
-                        <div class="img" style="aspect-ratio: 1/1; background-color: #f9fafb; overflow: hidden;">
-                          <img src="https://via.placeholder.com/300x300/3b82f6/ffffff?text=AMADINA" alt="Credencial AMADINA" class="productCatalog-product-image" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;" />
-                        </div>
-                        <div class="content" style="padding: 12px;">
-                          <p class="code" style="font-size: 12px; color: #6b7280; margin: 0 0 4px 0;">AMADINA-001</p>
-                          <p class="descripcion" style="font-weight: 500; color: #111827; font-size: 14px; margin: 0 0 8px 0; line-height: 1.3;">Credencial AMADINA</p>
-                          <div class="labels" style="display: flex; flex-wrap: wrap; gap: 4px;">
-                            <div class="bajo-pedido" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; font-size: 12px; font-weight: 500; background-color: #dbeafe; color: #1d4ed8; border-radius: 4px;">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /><path d="M15 18H9" /><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" /><circle cx="17" cy="18" r="2" /><circle cx="7" cy="18" r="2" /></svg>
-                              <small>Pedido</small>
-                            </div>
+
+                    <!-- Products Section -->
+                    <div class="productCatalog-products-section" style="padding: 16px 24px; height: 100%; display: grid; grid-template-rows: auto 1fr auto; overflow: auto;">
+                      <div class="productCatalog-products-header" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
+                        <h2 class="productCatalog-products-title" style="font-size: clamp(18px, 3vw, 20px); font-weight: 600; color: #111827; margin: 0;">
+                          SELECCIONA UNA COLECCIÓN
+                        </h2>
+                        <span class="productCatalog-products-count" id="${catalogId}-products-count" style="font-size: 14px; color: #6b7280;">
+                          0 productos encontrados
+                        </span>
+                      </div>
+                      <div class="productCatalog-products-grid" id="${catalogId}-products-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; overflow-y: auto;">
+                        <div class="productCatalog-loading" id="${catalogId}-products-loading" style="text-align: center; padding: 64px 0; display: none;">
+                          <div style="display: inline-flex; align-items: center; padding: 8px 16px; font-size: 14px; color: #6b7280;">
+                            <svg style="animation: spin 1s linear infinite; margin-right: 12px; width: 20px; height: 20px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                              <path style="opacity: 0.75;" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Cargando productos...
                           </div>
                         </div>
-                      </div>
-                      <div class="item" style="cursor: pointer; background-color: white; border: 1px solid #f3f4f6; border-radius: 12px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: auto;">
-                        <div class="img" style="aspect-ratio: 1/1; background-color: #f9fafb; overflow: hidden;">
-                          <img src="https://via.placeholder.com/300x300/10b981/ffffff?text=CitiMall" alt="Credencial CitiMall" class="productCatalog-product-image" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;" />
+                        <div class="productCatalog-no-products" id="${catalogId}-no-products" style="text-align: center; padding: 64px 0; display: none;">
+                          <h3 style="color: #6b7280; font-size: 18px; margin-bottom: 8px;">No se encontraron productos</h3>
+                          <p style="color: #9ca3af; font-size: 14px;">Intenta ajustar tus filtros o términos de búsqueda</p>
                         </div>
-                        <div class="content" style="padding: 12px;">
-                          <p class="code" style="font-size: 12px; color: #6b7280; margin: 0 0 4px 0;">CITI-002</p>
-                          <p class="descripcion" style="font-weight: 500; color: #111827; font-size: 14px; margin: 0 0 8px 0; line-height: 1.3;">Credencial CitiMall</p>
-                          <div class="labels" style="display: flex; flex-wrap: wrap; gap: 4px;">
-                            <div class="vender-sin-stock" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; font-size: 12px; font-weight: 500; background-color: #dcfce7; color: #166534; border-radius: 4px;">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>
-                              <small>S/Stock</small>
-                            </div>
+                      </div>
+                      <!-- Pagination Controls -->
+                      <div id="${catalogId}-pagination" style="display: flex; justify-content: center; gap: 8px; margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6; display: none;">
+                        <div class="pagination-row" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                          <div class="pagination-btn-container">
+                            <button id="${catalogId}-prev-btn" class="btn__general-primary" disabled style="padding: 6px 16px; background-color: #f3f4f6; color: #9ca3af; border-radius: 6px; font-size: 14px; border: none; cursor: not-allowed; opacity: 0.5; transition: all 0.2s;">
+                              ANTERIOR
+                            </button>
                           </div>
-                        </div>
-                      </div>
-                      <div class="item" style="cursor: pointer; background-color: white; border: 1px solid #f3f4f6; border-radius: 12px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: auto;">
-                        <div class="img" style="aspect-ratio: 1/1; background-color: #f9fafb; overflow: hidden;">
-                          <img src="https://via.placeholder.com/300x300/f59e0b/ffffff?text=GPAlliance" alt="Credencial GPAlliance" class="productCatalog-product-image" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;" />
-                        </div>
-                        <div class="content" style="padding: 12px;">
-                          <p class="code" style="font-size: 12px; color: #6b7280; margin: 0 0 4px 0;">GPA-003</p>
-                          <p class="descripcion" style="font-weight: 500; color: #111827; font-size: 14px; margin: 0 0 8px 0; line-height: 1.3;">Credencial GPAlliance</p>
-                          <div class="labels" style="display: flex; flex-wrap: wrap; gap: 4px;"></div>
-                          <div class="desabasto" style="display: inline-block; padding: 2px 6px; font-size: 12px; font-weight: 500; background-color: #fee2e2; color: #dc2626; border-radius: 4px; margin-top: 4px;">
-                            <small>Agotado</small>
+                          <div class="pagination-info-container">
+                            <span id="${catalogId}-page-info" style="padding: 6px 12px; font-size: 14px; color: #6b7280; background-color: #f9fafb; border-radius: 6px;">
+                              Página 1
+                            </span>
                           </div>
-                        </div>
-                      </div>
-                      <div class="item" style="cursor: pointer; background-color: white; border: 1px solid #f3f4f6; border-radius: 12px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: auto;">
-                        <div class="img" style="aspect-ratio: 1/1; background-color: #f9fafb; overflow: hidden;">
-                          <img src="https://via.placeholder.com/300x300/ef4444/ffffff?text=Alhambra" alt="Credencial Alhambra" class="productCatalog-product-image" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;" />
-                        </div>
-                        <div class="content" style="padding: 12px;">
-                          <p class="code" style="font-size: 12px; color: #6b7280; margin: 0 0 4px 0;">ALH-004</p>
-                          <p class="descripcion" style="font-weight: 500; color: #111827; font-size: 14px; margin: 0 0 8px 0; line-height: 1.3;">Credencial Alhambra</p>
-                          <div class="labels" style="display: flex; flex-wrap: wrap; gap: 4px;"></div>
-                          <div class="ultima-piezas" style="display: inline-block; padding: 2px 6px; font-size: 12px; font-weight: 500; background-color: #e2e3ff; color: #383d96; border-radius: 4px; margin-top: 4px;">
-                            <small>Últimas Piezas</small>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="item" style="cursor: pointer; background-color: white; border: 1px solid #f3f4f6; border-radius: 12px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: auto;">
-                        <div class="img" style="aspect-ratio: 1/1; background-color: #f9fafb; overflow: hidden;">
-                          <img src="https://via.placeholder.com/300x300/8b5cf6/ffffff?text=alicorp" alt="Credencial alicorp" class="productCatalog-product-image" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;" />
-                        </div>
-                        <div class="content" style="padding: 12px;">
-                          <p class="code" style="font-size: 12px; color: #6b7280; margin: 0 0 4px 0;">ALI-005</p>
-                          <p class="descripcion" style="font-weight: 500; color: #111827; font-size: 14px; margin: 0 0 8px 0; line-height: 1.3;">Credencial alicorp</p>
-                          <div class="labels" style="display: flex; flex-wrap: wrap; gap: 4px;"></div>
-                        </div>
-                      </div>
-                      <div class="item" style="cursor: pointer; background-color: white; border: 1px solid #f3f4f6; border-radius: 12px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: auto;">
-                        <div class="img" style="aspect-ratio: 1/1; background-color: #f9fafb; overflow: hidden;">
-                          <img src="https://via.placeholder.com/300x300/06b6d4/ffffff?text=Diamond" alt="Credencial Diamond" class="productCatalog-product-image" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;" />
-                        </div>
-                        <div class="content" style="padding: 12px;">
-                          <p class="code" style="font-size: 12px; color: #6b7280; margin: 0 0 4px 0;">DIA-006</p>
-                          <p class="descripcion" style="font-weight: 500; color: #111827; font-size: 14px; margin: 0 0 8px 0; line-height: 1.3;">Credencial Diamond</p>
-                          <div class="labels" style="display: flex; flex-wrap: wrap; gap: 4px;"></div>
+                      <div class="col-1">
+                          <button id="${catalogId}-next-btn" class="btn__general-primary" style="padding: 6px 16px; background-color: #e0241b; color: white; border-radius: 6px; font-size: 14px; border: none; cursor: pointer; transition: all 0.2s;">
+                            SIGUIENTE
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -287,303 +214,172 @@ export const generateSectionHTML = (section, allSections) => {
             </div>
           </div>
           <script>
+            // Catalog Functionality for ${catalogId}
             (function() {
               const catalogId = '${catalogId}';
-              
-              // Prevent multiple initializations
-              if (window[catalogId + '_initialized']) {
-                return;
-              }
-              window[catalogId + '_initialized'] = true;
-              
-              const familiesContainer = document.getElementById(catalogId + '-families');
-              const collectionsContainer = document.getElementById(catalogId + '-collections');
-              const productsContainer = document.getElementById(catalogId + '-products');
-              const productsTitle = document.querySelector('#' + catalogId + ' .productCatalog-products-title');
-              const productsCount = document.querySelector('#' + catalogId + ' .productCatalog-products-count');
-              const searchInput = document.querySelector('#' + catalogId + ' .productCatalog-search-input');
-              const familiaSearchInput = document.querySelector('#' + catalogId + ' .productCatalog-familia-search');
-              const searchTypeSelect = document.querySelector('#' + catalogId + ' select.inputs__general');
-              
-              let selectedFamily = null;
+              console.log('Catalog ID from template:', catalogId);
+              console.log('Catalog ID should be:', '${catalogId}');
+              console.log('Checking if elements exist:');
+              console.log('- Collections loading:', document.getElementById(catalogId + '-collections-loading'));
+              console.log('- Products loading:', document.getElementById(catalogId + '-products-loading'));
+              let selectedFamilia = null;
               let selectedCollection = null;
-              let currentProducts = [];
-              let searchType = 0; // 0 = Por Descripción, 1 = Codigo
+              let currentPage = 1;
+              let searchTerm = '';
+              let searchType = 0;
+              let families = [];
+              let collections = [];
+              let products = [];
+              let filteredProducts = [];
+              let loading = {
+                families: false,
+                collections: false,
+                products: false
+              };
+              const userId = 3;
+              const url_img = 'http://hiplot.dyndns.org:84/';
               
-              // Función para hacer peticiones a las APIs
+              // Loading state management
+              function setLoading(isLoading, type) {
+                console.log('setLoading - type:', type, 'isLoading:', isLoading);
+                loading[type] = isLoading;
+                if (type === 'families') {
+                  renderFamilies();
+                } else if (type === 'collections') {
+                  renderCollections();
+                } else if (type === 'products') {
+                  renderProducts();
+                }
+              }
+              
+              // API Functions
               async function fetchData(url, options = {}) {
                 try {
+                  console.log('Fetching:', url, options);
                   const response = await fetch(url, {
-                    method: options.method || 'GET',
                     headers: {
                       'Content-Type': 'application/json',
                       ...options.headers
                     },
-                    body: options.body || undefined
+                    ...options
                   });
-                  return await response.json();
+                  const data = await response.json();
+                  console.log('Response:', data);
+                  return data;
                 } catch (error) {
                   console.error('Error fetching data:', error);
-                  return null;
+                  throw error;
                 }
               }
               
-              let isLoadingFamilies = false;
-              let familiesLoaded = false;
-              let isSelectingFamily = false;
-              let isLoadingCollections = false;
-
-              // Cargar familias
-              async function loadFamilies() {
-                if (isLoadingFamilies || familiesLoaded) return;
-
-                try {
-                  isLoadingFamilies = true;
-                  familiesContainer.innerHTML = '<div class="productCatalog-familia-item" style="color: #64748b; font-style: italic;">Cargando familias...</div>';
-
-                  const families = await fetchData('http://hiplot.dyndns.org:84/api_dev/familia_get/3');
-
-                  if (families && families.length > 0) {
-                    // Agregar "Todas las Familias" al inicio
-                    families.unshift({ id: 0, nombre: 'Todas las Familias' });
-
-                    let familiesHTML = '';
-                    families.forEach((family, index) => {
-                      const isActive = index === 0;
-                      familiesHTML += \`
-                        <div onclick="selectFamily('\${family.id}', '\${family.nombre}')"
-                             class="productCatalog-familia-item \${isActive ? 'active' : ''}"
-                             data-family-id="\${family.id}">
-                          <span class="productCatalog-familia-name"> \${family.nombre}</span>
-                        </div>
-                      \`;
-                    });
-                    familiesContainer.innerHTML = familiesHTML;
-                    familiesLoaded = true;
-
-                    // Si hay familias, seleccionar la primera y cargar sus colecciones (como en React)
-                    if (families.length > 0) {
-                      await selectFamily(families[0].id, families[0].nombre);
-                    }
-                  } else {
-                    familiesContainer.innerHTML = '<div class="productCatalog-familia-item" style="color: #ef4444;">📁 No hay familias disponibles</div>';
-                  }
-                } catch (error) {
-                  familiesContainer.innerHTML = '<div class="productCatalog-familia-item" style="color: #ef4444;">📁 Error al cargar familias</div>';
-                  console.error('Error loading families:', error);
-                } finally {
-                  isLoadingFamilies = false;
-                }
+              async function getFamilies(userId) {
+                console.log('Getting families for userId:', userId);
+                return await fetchData('http://hiplot.dyndns.org:84/api_dev/familia_get/' + userId);
               }
               
-              // Seleccionar familia
-              window.selectFamily = async function(familyId, familyName) {
-                if (isSelectingFamily) return;
-                if (selectedFamily && selectedFamily.id === familyId) return;
-
-                try {
-                  isSelectingFamily = true;
-                  selectedFamily = { id: familyId, nombre: familyName };
-                  selectedCollection = null;
-
-                  // Actualizar UI de familias
-                  const familyElements = familiesContainer.querySelectorAll('.productCatalog-familia-item');
-                  familyElements.forEach(el => {
-                    el.classList.remove('active');
-                  });
-
-                  const selectedElement = familiesContainer.querySelector(\`[data-family-id="\${familyId}"]\`);
-                  if (selectedElement) {
-                    selectedElement.classList.add('active');
-                  }
-
-                  // Cargar colecciones
-                  await loadCollections(familyId);
-                } finally {
-                  isSelectingFamily = false;
-                }
-              };
-              
-              // Cargar colecciones
-              async function loadCollections(familyId) {
-                if (isLoadingCollections) return;
-
-                try {
-                  isLoadingCollections = true;
-                  collectionsContainer.innerHTML = '<div class="productCatalog-collection-btn" style="background: #f1f5f9; color: #64748b; cursor: default;">⏳ Cargando...</div>';
-                  productsContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 200px; color: #64748b; font-size: 14px; font-style: italic;">🔄 Cargando colecciones...</div>';
-
-                  let collections = [];
-                  if (familyId == 0) {
-                    // Si es "Todas las Familias", cargar todas las colecciones
-                    const allFamilies = await fetchData('http://hiplot.dyndns.org:84/api_dev/familia_get/3');
-                    if (allFamilies) {
-                      for (let family of allFamilies.slice(0, 5)) { // Limitar a 5 familias para evitar sobrecarga
-                        const familyCollections = await fetchData(\`http://hiplot.dyndns.org:84/api_dev/get_colecciones_x_familia/\${family.id}\`);
-                        if (familyCollections && familyCollections.length > 0) {
-                          collections = collections.concat(familyCollections);
-                        }
-                      }
-                    }
-                  } else {
-                    collections = await fetchData(\`http://hiplot.dyndns.org:84/api_dev/get_colecciones_x_familia/\${familyId}\`);
-                  }
-
-                  if (collections && collections.length > 0) {
-                    // Agregar "Todas las Colecciones" al inicio
-                    collections.unshift({ id: 0, nombre: 'Todas las Colecciones' });
-
-                    let collectionsHTML = '';
-                    collections.forEach((collection, index) => {
-                      const isActive = index === 0;
-                      collectionsHTML += \`
-                        <div onclick="selectCollection('\${collection.id}', '\${collection.nombre}')"
-                             class="productCatalog-collection-btn \${isActive ? 'active' : ''}"
-                             data-collection-id="\${collection.id}">
-                          📋 \${collection.nombre}
-                        </div>
-                      \`;
-                    });
-                    collectionsContainer.innerHTML = collectionsHTML;
-
-                    // Si hay colecciones, seleccionar la primera y cargar sus productos (como en React)
-                    if (collections.length > 0) {
-                      await selectCollection(collections[0].id, collections[0].nombre);
-                    }
-                  } else {
-                    collectionsContainer.innerHTML = '<div class="productCatalog-collection-btn" style="background: #fef2f2; color: #dc2626; cursor: default;">📋 Sin colecciones</div>';
-                    productsContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 200px; color: #dc2626; font-size: 14px;">📋 No hay colecciones disponibles</div>';
-                  }
-                } catch (error) {
-                  collectionsContainer.innerHTML = '<div class="productCatalog-collection-btn" style="background: #fef2f2; color: #dc2626; cursor: default;">❌ Error</div>';
-                  productsContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 200px; color: #dc2626; font-size: 14px;">❌ Error al cargar colecciones</div>';
-                  console.error('Error loading collections:', error);
-                } finally {
-                  isLoadingCollections = false;
-                }
+              async function getCollectionByFamily(familyId) {
+                console.log('Getting collections for familyId:', familyId);
+                return await fetchData('http://hiplot.dyndns.org:84/api_dev/get_colecciones_x_familia/' + familyId);
               }
               
-              // Seleccionar colección
-              window.selectCollection = async function(collectionId, collectionName) {
-                selectedCollection = { id: collectionId, nombre: collectionName };
-                
-                // Actualizar UI de colecciones
-                const collectionElements = collectionsContainer.querySelectorAll('.productCatalog-collection-btn');
-                collectionElements.forEach(el => {
-                  el.classList.remove('active');
+              async function getArticlesForVendedor(data) {
+                console.log('Getting articles for vendedor:', data);
+                return await fetchData('http://hiplot.dyndns.org:84/api_dev/articulos_get_for_vendedor', {
+                  method: 'POST',
+                  body: JSON.stringify(data)
                 });
-                
-                const selectedElement = collectionsContainer.querySelector(\`[data-collection-id="\${collectionId}"]\`);
-                if (selectedElement) {
-                  selectedElement.classList.add('active');
-                }
-                
-                // Actualizar título
-                if (productsTitle) {
-                  productsTitle.textContent = \`PRODUCTOS - \${collectionName}\`;
-                }
-                
-                // Cargar productos (exactamente como en React)
-                await loadProducts(selectedFamily.id, collectionId, 1);
-              };
+              }
               
-              // Función para buscar productos por código o descripción
-              window.loadProductsByCodeOrDesc = async function(input, numberPage) {
+              // Load Families
+              async function loadFamilies() {
                 try {
-                  productsContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 200px; color: #64748b; font-size: 12px;">Buscando productos...</div>';
+                  console.log('Cargando familias...');
+                  setLoading(true, 'families');
+                  const familiesData = await getFamilies(userId);
+                  console.log('Familias recibidas:', familiesData);
                   
-                  const data = {
-                    id: 0,
-                    activos: true,
-                    nombre: searchType == 0 ? input : '',
-                    codigo: searchType == 1 ? input : '',
-                    familia: 0,
-                    proveedor: 0,
-                    materia_prima: 99,
-                    get_sucursales: false,
-                    get_proveedores: false,
-                    get_max_mins: false,
-                    get_plantilla_data: false,
-                    get_areas_produccion: false,
-                    coleccion: false,
-                    id_coleccion: 0,
-                    get_stock: false,
-                    get_web: true,
-                    get_unidades: false,
-                    for_vendedor: true,
-                    page: numberPage,
-                    id_usuario: 3,
-                    light: true,
-                    no_resultados: 50
-                  };
-                  
-                  const result = await fetchData('http://hiplot.dyndns.org:84/api_dev/articulos_get_for_vendedor', {
-                    method: 'POST',
-                    body: JSON.stringify(data)
-                  });
-                  
-                  const productsData = result.data || result || [];
-                  currentProducts = productsData;
-                  
-                  if (productsData && productsData.length > 0) {
-                    let productsHTML = '';
-                    productsData.forEach(product => {
-                      productsHTML += \`
-                        <div class="item">
-                          <div class="img">
-                            <img src="http://hiplot.dyndns.org:84/\${product.imagen}" alt="\${product.nombre}" class="productCatalog-product-image" />
-                          </div>
-                          <div class="content">
-                            <p class="code">\${product.codigo}</p>
-                            <p class="descripcion">\${product.descripcion}</p>
-                            <div class="labels">
-                              \${product.bajo_pedido ? '<div class="bajo-pedido"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /><path d="M15 18H9" /><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" /><circle cx="17" cy="18" r="2" /><circle cx="7" cy="18" r="2" /></svg><small>Bajo Pedido</small></div>' : ''}
-                              \${product.vender_sin_stock ? '<div class="vender-sin-stock"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" /></svg><small>Vender sin Stock</small></div>' : ''}
-                            </div>
-                            \${product.desabasto ? '<div class="desabasto"><small>Desabasto</small></div>' : ''}
-                            \${product.ultimas_piezas ? '<div class="ultima-piezas"><small>Ultimas Piezas</small></div>' : ''}
-                          </div>
-                        </div>
-                      \`;
-                    });
+                  if (familiesData && Array.isArray(familiesData)) {
+                    families = familiesData;
+                    families.unshift({ id: 0, nombre: 'Todas las Familias' });
+                    renderFamilies();
                     
-                    // Agregar botones de paginación
-                    productsHTML += \`
-                      <div class="row">
-                        <div class="col-1">
-                          <button class="btn__general-primary" onclick="loadProductsByCodeOrDesc('\${input}', \${numberPage - 1})" disabled="\${numberPage <= 1}">ANTERIOR</button>
-                        </div>
-                        <div class="col-10">
-                        </div>
-                        <div class="col-1">
-                          <button class="btn__general-primary" onclick="loadProductsByCodeOrDesc('\${input}', \${numberPage + 1})">SIGUIENTE</button>
-                        </div>
-                      </div>
-                    \`;
-                    
-                    productsContainer.innerHTML = productsHTML;
-                    if (productsCount) {
-                      productsCount.textContent = \`\${productsData.length} productos encontrados\`;
+                    // Si hay familias, seleccionar la primera y cargar sus colecciones
+                    if (familiesData.length > 0) {
+                      selectedFamilia = familiesData[0].id;
+                      console.log('Seleccionando primera familia:', selectedFamilia);
+                      await loadCollections(familiesData[0].id);
                     }
                   } else {
-                    productsContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 200px; color: #64748b; font-size: 12px;">No se encontraron productos</div>';
-                    if (productsCount) {
-                      productsCount.textContent = '0 productos encontrados';
-                    }
+                    console.error('Datos de familias inválidos:', familiesData);
+                    families = [];
+                    renderFamilies();
                   }
                 } catch (error) {
-                  productsContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 200px; color: #64748b; font-size: 12px;">Error al buscar productos</div>';
-                  if (productsCount) {
-                    productsCount.textContent = '0 productos encontrados';
-                  }
+                  console.error("Error cargando familias:", error);
+                  families = [];
+                  renderFamilies();
+                } finally {
+                  setLoading(false, 'families');
                 }
-              };
+              }
               
-              // Cargar productos (exactamente como en React)
-              window.loadProducts = async function(familiaId, collectionId, pageNumber) {
+              // Load Collections
+              async function loadCollections(familiaId) {
                 try {
-                  productsContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 200px; color: #64748b; font-size: 12px;">Cargando productos...</div>';
+                  console.log('=== LOAD COLLECTIONS ===');
+                  console.log('Cargando colecciones para familia:', familiaId);
+                  setLoading(true, 'collections');
+                  let collectionsData = await getCollectionByFamily(familiaId);
+                  console.log('Colecciones recibidas:', collectionsData);
                   
+                  if (collectionsData && Array.isArray(collectionsData)) {
+                    collections = collectionsData;
+                    collections.unshift({ id: 0, nombre: 'Todas las Colecciones' });
+                    console.log('Colecciones procesadas:', collections);
+                    
+                    // Si hay colecciones, seleccionar la primera y cargar sus productos
+                    if (collectionsData.length > 0) {
+                      selectedCollection = collectionsData[0].id;
+                      console.log('Seleccionando primera colección:', selectedCollection);
+                      // Renderizar colecciones CON la selección
+                      renderCollections();
+                      // Aquí es donde se llama a loadProducts exactamente como en React
+                      await loadProducts(familiaId, collectionsData[0].id, 1);
+                    } else {
+                      // Si no hay colecciones, limpiar productos
+                      console.log('No hay colecciones, limpiando productos');
+                      selectedCollection = null;
+                      renderCollections();
+                      products = [];
+                      filteredProducts = [];
+                      renderProducts();
+                    }
+                  } else {
+                    console.error('Datos de colecciones inválidos:', collectionsData);
+                    collections = [];
+                    renderCollections();
+                    products = [];
+                    filteredProducts = [];
+                    renderProducts();
+                  }
+                } catch (error) {
+                  console.error("Error cargando colecciones:", error);
+                  collections = [];
+                  renderCollections();
+                  products = [];
+                  filteredProducts = [];
+                  renderProducts();
+                } finally {
+                  setLoading(false, 'collections');
+                }
+              }
+              
+              // Load Products
+              async function loadProducts(familiaId, collectionId, pageNumber) {
+                try {
+                  console.log('=== LOAD PRODUCTS ===');
+                  console.log('loadProducts - familiaId:', familiaId, 'collectionId:', collectionId, 'pageNumber:', pageNumber);
+                  setLoading(true, 'products');
                   const data = {
                     id: 0,
                     activos: true,
@@ -604,123 +400,433 @@ export const generateSectionHTML = (section, allSections) => {
                     get_unidades: false,
                     for_vendedor: true,
                     page: pageNumber,
-                    id_usuario: 3,
+                    id_usuario: userId,
                     light: true,
                     no_resultados: 50
                   };
                   
-                  const result = await fetchData('http://hiplot.dyndns.org:84/api_dev/articulos_get_for_vendedor', {
-                    method: 'POST',
-                    body: JSON.stringify(data)
-                  });
-                  
-                  const products = result.data || result || [];
-                  currentProducts = products;
-                  
-                  if (products && products.length > 0) {
-                    let productsHTML = '';
-                    products.forEach(product => {
-                      productsHTML += \`
-                        <div class="item">
-                          <div class="img">
-                            <img src="http://hiplot.dyndns.org:84/\${product.imagen}" alt="\${product.nombre}" class="productCatalog-product-image" />
-                          </div>
-                          <div class="content">
-                            <p class="code">\${product.codigo}</p>
-                            <p class="descripcion">\${product.descripcion}</p>
-                            <div class="labels">
-                              \${product.bajo_pedido ? '<div class="bajo-pedido"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /><path d="M15 18H9" /><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" /><circle cx="17" cy="18" r="2" /><circle cx="7" cy="18" r="2" /></svg><small>Bajo Pedido</small></div>' : ''}
-                              \${product.vender_sin_stock ? '<div class="vender-sin-stock"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" /></svg><small>Vender sin Stock</small></div>' : ''}
-                            </div>
-                            \${product.desabasto ? '<div class="desabasto"><small>Desabasto</small></div>' : ''}
-                            \${product.ultimas_piezas ? '<div class="ultima-piezas"><small>Ultimas Piezas</small></div>' : ''}
-                          </div>
-                        </div>
-                      \`;
-                    });
-                    
-                    // Agregar botones de paginación
-                    productsHTML += \`
-                      <div class="row">
-                        <div class="col-1">
-                          <button class="btn__general-primary" onclick="loadProducts(\${familiaId}, \${collectionId}, \${pageNumber - 1})" disabled="\${pageNumber <= 1}">ANTERIOR</button>
-                        </div>
-                        <div class="col-10">
-                        </div>
-                        <div class="col-1">
-                          <button class="btn__general-primary" onclick="loadProducts(\${familiaId}, \${collectionId}, \${pageNumber + 1})">SIGUIENTE</button>
-                        </div>
-                      </div>
-                    \`;
-                    
-                    productsContainer.innerHTML = productsHTML;
-                    
-                    // Actualizar contador
-                    if (productsCount) {
-                      productsCount.textContent = \`\${products.length} productos encontrados\`;
-                    }
-                  } else {
-                    productsContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 200px; color: #64748b; font-size: 12px;">No hay productos disponibles</div>';
-                    if (productsCount) {
-                      productsCount.textContent = '0 productos encontrados';
-                    }
-                  }
+                  console.log('loadProducts - data enviada:', data);
+                  const result = await getArticlesForVendedor(data);
+                  console.log('loadProducts - result:', result);
+                  products = result.data || result || [];
+                  filteredProducts = products;
+                  console.log('loadProducts - products asignados:', products);
+                  console.log('loadProducts - filteredProducts asignados:', filteredProducts);
+                  renderProducts();
                 } catch (error) {
-                  productsContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 200px; color: #64748b; font-size: 12px;">Error al cargar productos</div>';
-                  if (productsCount) {
-                    productsCount.textContent = '0 productos encontrados';
-                  }
+                  console.error("Error cargando productos:", error);
+                  products = [];
+                  filteredProducts = [];
+                  renderProducts();
+                } finally {
+                  setLoading(false, 'products');
                 }
-              };
+              }
               
-              // Búsqueda de productos en tiempo real
-              if (searchInput && !searchInput.hasAttribute('data-listener-attached')) {
-                searchInput.setAttribute('data-listener-attached', 'true');
+              // Load Products by Search
+              async function loadProductsByCodeOrDesc(input, numberPage) {
+                try {
+                  setLoading(true, 'products');
+                  const data = {
+                    id: 0,
+                    activos: true,
+                    nombre: searchType == 0 ? input : '',
+                    codigo: searchType == 1 ? input : '',
+                    familia: 0,
+                    proveedor: 0,
+                    materia_prima: 99,
+                    get_sucursales: false,
+                    get_proveedores: false,
+                    get_max_mins: false,
+                    get_plantilla_data: false,
+                    get_areas_produccion: false,
+                    coleccion: false,
+                    id_coleccion: 0,
+                    get_stock: false,
+                    get_web: true,
+                    get_unidades: false,
+                    for_vendedor: true,
+                    page: numberPage,
+                    id_usuario: userId,
+                    light: true,
+                    no_resultados: 50
+                  };
+                  
+                  const result = await getArticlesForVendedor(data);
+                  products = result.data || result || [];
+                  filteredProducts = products;
+                  renderProducts();
+                } catch (error) {
+                  console.error("Error cargando productos:", error);
+                  products = [];
+                  filteredProducts = [];
+                  renderProducts();
+                } finally {
+                  setLoading(false, 'products');
+                }
+              }
+              
+              // Render Functions
+              function renderFamilies() {
+                console.log('=== RENDER FAMILIES ===');
+                console.log('Renderizando familias:', families);
+                const familiesContainer = document.getElementById(catalogId + '-families');
+                const loadingElement = document.getElementById(catalogId + '-families-loading');
                 
-                // Solo búsqueda por Enter (como en el React component)
-                searchInput.addEventListener('keyup', function(e) {
-                  if (e.key === 'Enter') {
-                    const searchTerm = e.target.value;
-                    if (searchTerm.trim() !== '') {
-                      loadProductsByCodeOrDesc(searchTerm, 1);
-                    } else {
-                      // Si el campo está vacío, recargar productos de la colección actual
-                      if (selectedCollection !== null) {
-                        loadProducts(selectedFamily.id, selectedCollection.id, 1);
-                      }
-                    }
+                console.log('Families container:', familiesContainer);
+                console.log('Loading element:', loadingElement);
+                
+                if (loading.families) {
+                  console.log('Mostrando loading de familias');
+                  if (loadingElement) loadingElement.style.display = 'block';
+                  return;
+                }
+                
+                console.log('Ocultando loading de familias');
+                if (loadingElement) loadingElement.style.display = 'none';
+                
+                if (!familiesContainer) {
+                  console.error('No se encontró el contenedor de familias');
+                  return;
+                }
+                
+                let familiesHTML = '';
+                
+                // Filtrar familias basado en la búsqueda (como en el componente React)
+                const searchFamiliaTerm = document.getElementById(catalogId + '-familia-search')?.value || '';
+                const filteredFamilies = families.filter(familia => 
+                  familia.nombre.toLowerCase().includes(searchFamiliaTerm.toLowerCase())
+                );
+                
+                console.log('Familias filtradas:', filteredFamilies);
+                console.log('selectedFamilia actual:', selectedFamilia);
+                
+                filteredFamilies.forEach(familia => {
+                  const isActive = selectedFamilia === familia.id;
+                  console.log('Familia:', familia.nombre, 'ID:', familia.id, 'Activa:', isActive);
+                  familiesHTML += '<div class="productCatalog-familia-item ' + (isActive ? 'active' : '') + '" data-familia-id="' + familia.id + '" style=" text-align: left; padding: 10px 12px; border-radius: 8px; transition: all 0.2s; fontSize: 14px; cursor: pointer; backgroundColor: ' + (isActive ? '#e0241b' : 'transparent') + '; color: ' + (isActive ? 'white' : '#374151') + '; boxShadow: ' + (isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none') + '; margin-bottom: 4px;">' +
+                    '<span>' + familia.nombre + '</span>' +
+                  '</div>';
+                });
+                
+                console.log('HTML de familias generado:', familiesHTML);
+                familiesContainer.innerHTML = familiesHTML;
+                addFamiliaEventListeners();
+                console.log('=== FIN RENDER FAMILIES ===');
+              }
+              
+              function renderCollections() {
+                const collectionsContainer = document.getElementById(catalogId + '-collections');
+                const loadingElement = document.getElementById(catalogId + '-collections-loading');
+                
+                console.log('renderCollections - catalogId:', catalogId);
+                console.log('renderCollections - collectionsContainer:', collectionsContainer);
+                console.log('renderCollections - loadingElement:', loadingElement);
+                
+                if (!collectionsContainer) {
+                  console.error('Collections container no encontrado');
+                  return;
+                }
+                
+                if (!loadingElement) {
+                  console.error('Loading element no encontrado, continuando sin loading');
+                  // Continuar sin el loading element
+                }
+                
+                if (loading.collections) {
+                  if (loadingElement) {
+                    loadingElement.style.display = 'block';
                   }
+                  return;
+                }
+                
+                if (loadingElement) {
+                  loadingElement.style.display = 'none';
+                }
+                console.log('renderCollections - collections array:', collections);
+                console.log('renderCollections - selectedCollection:', selectedCollection);
+                let collectionsHTML = '';
+                
+                collections.forEach(collection => {
+                  const isActive = selectedCollection === collection.id;
+                  collectionsHTML += '<button class="productCatalog-collection-btn ' + (isActive ? 'active' : '') + '" data-collection-id="' + collection.id + '" style="padding: 8px 16px; border-radius: 8px; white-space: nowrap; transition: all 0.2s; font-size: 14px; font-weight: 500; border: none; cursor: pointer; backgroundColor: ' + (isActive ? '#e0241b' : '#f3f4f6') + '; color: ' + (isActive ? 'white' : '#374151') + '; boxShadow: ' + (isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none') + ';">' +
+                    collection.nombre +
+                  '</button>';
+                });
+                
+                console.log('renderCollections - HTML generado:', collectionsHTML);
+                collectionsContainer.innerHTML = collectionsHTML;
+                addCollectionEventListeners();
+              }
+              
+              function renderProducts() {
+                const productsGrid = document.getElementById(catalogId + '-products-grid');
+                const productsCount = document.getElementById(catalogId + '-products-count');
+                const productsLoading = document.getElementById(catalogId + '-products-loading');
+                const noProducts = document.getElementById(catalogId + '-no-products');
+                const pagination = document.getElementById(catalogId + '-pagination');
+                const productsTitle = document.querySelector('#' + catalogId + ' .productCatalog-products-title');
+                
+                console.log('renderProducts - catalogId:', catalogId);
+                console.log('renderProducts - productsGrid:', productsGrid);
+                console.log('renderProducts - productsLoading:', productsLoading);
+                
+                if (!productsGrid) {
+                  console.error('Products grid no encontrado');
+                  return;
+                }
+                
+                if (!productsLoading || !noProducts || !pagination) {
+                  console.error('Algunos elementos de products no encontrados, continuando sin ellos');
+                  // Continuar sin estos elementos
+                }
+                
+                if (loading.products) {
+                  if (productsLoading) productsLoading.style.display = 'block';
+                  if (noProducts) noProducts.style.display = 'none';
+                  if (pagination) pagination.style.display = 'none';
+                  return;
+                }
+                
+                if (productsLoading) productsLoading.style.display = 'none';
+                console.log('renderProducts - filteredProducts array:', filteredProducts);
+                console.log('renderProducts - selectedCollection:', selectedCollection);
+                console.log('renderProducts - collections array:', collections);
+                
+                if (filteredProducts.length === 0) {
+                  if (noProducts) noProducts.style.display = 'block';
+                  if (pagination) pagination.style.display = 'none';
+                  if (productsCount) productsCount.textContent = '0 productos encontrados';
+                  if (productsTitle) productsTitle.textContent = 'SELECCIONA UNA COLECCIÓN';
+                  return;
+                }
+                
+                if (noProducts) noProducts.style.display = 'none';
+                if (pagination) pagination.style.display = 'flex';
+                if (productsCount) productsCount.textContent = filteredProducts.length + ' productos encontrados';
+                
+                const selectedCollectionName = collections.find(c => c.id === selectedCollection)?.nombre || 'Todas las Colecciones';
+                if (productsTitle) productsTitle.textContent = 'PRODUCTOS - ' + selectedCollectionName;
+                
+                let productsHTML = '';
+                filteredProducts.forEach((product, index) => {
+                  productsHTML += '<div class="item" data-product-id="' + (product.id || index) + '" style="cursor: pointer; background-color: white; border: 1px solid #f3f4f6; border-radius: 12px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: auto;">' +
+                    '<div class="img" style="aspect-ratio: 1/1; background-color: #f9fafb; overflow: hidden;">' +
+                      '<img src="' + url_img + product.imagen + '" alt="' + product.descripcion + '" class="productCatalog-product-image" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;" />' +
+                    '</div>' +
+                    '<div class="content" style="padding: 12px;">' +
+                      '<p class="code" style="font-size: 12px; color: #6b7280; margin: 0 0 4px 0;">' + product.codigo + '</p>' +
+                      '<p class="descripcion" style="font-weight: 500; color: #111827; font-size: 14px; margin: 0 0 8px 0; line-height: 1.3;">' + product.descripcion + '</p>' +
+                     
+                      (product.desabasto ? '<div class="desabasto" style="display: inline-block; padding: 2px 6px; font-size: 12px; font-weight: 500; background-color: #fee2e2; color: #dc2626; border-radius: 4px; margin-top: 4px;"><small>Agotado</small></div>' : '') +
+                      (product.ultimas_piezas ? '<div class="ultima-piezas" style="display: inline-block; padding: 2px 6px; font-size: 12px; font-weight: 500; background-color: #fef3c7; color: #d97706; border-radius: 4px; margin-top: 4px;"><small>Últimas</small></div>' : '') +
+                    '</div>' +
+                  '</div>';
+                });
+                
+                console.log('renderProducts - HTML generado:', productsHTML);
+                productsGrid.innerHTML = productsHTML;
+                updatePagination();
+              }
+              
+              function updatePagination() {
+                const prevBtn = document.getElementById(catalogId + '-prev-btn');
+                const nextBtn = document.getElementById(catalogId + '-next-btn');
+                const pageInfo = document.getElementById(catalogId + '-page-info');
+                
+                if (prevBtn) prevBtn.disabled = currentPage <= 1;
+                if (nextBtn) nextBtn.disabled = filteredProducts.length < 50;
+                if (pageInfo) pageInfo.textContent = 'Página ' + currentPage;
+              }
+              
+              function addFamiliaEventListeners() {
+                const familiaItems = document.querySelectorAll('#' + catalogId + '-families .productCatalog-familia-item');
+                console.log('Agregando event listeners a familias:', familiaItems.length);
+                
+                familiaItems.forEach(item => {
+                  // Usar onclick directamente como en React
+                  item.onclick = async function() {
+                    console.log('=== CLICK EN FAMILIA ===');
+                    const familiaId = parseInt(this.getAttribute('data-familia-id'));
+                    console.log('Click en familia:', familiaId, 'selectedFamilia actual:', selectedFamilia);
+                    
+                    if (selectedFamilia === familiaId) {
+                      // Si ya está seleccionada, deseleccionar (exactamente como en React)
+                      console.log('Deseleccionando familia');
+                      selectedFamilia = null;
+                      selectedCollection = null;
+                      collections = [];
+                      products = [];
+                      currentPage = 1;
+                      filteredProducts = [];
+                      renderCollections();
+                      renderProducts();
+                    } else {
+                      // Seleccionar nueva familia (exactamente como en React)
+                      console.log('Seleccionando nueva familia:', familiaId);
+                      currentPage = 1;
+                      selectedFamilia = familiaId;
+                      console.log('Llamando a loadCollections con familiaId:', familiaId);
+                      // Aquí es donde se llama a loadCollections exactamente como en React
+                      await loadCollections(familiaId);
+                    }
+                  };
                 });
               }
               
-              // Cambiar tipo de búsqueda
-              if (searchTypeSelect && !searchTypeSelect.hasAttribute('data-listener-attached')) {
-                searchTypeSelect.setAttribute('data-listener-attached', 'true');
+              function addCollectionEventListeners() {
+                const collectionButtons = document.querySelectorAll('#' + catalogId + '-collections .productCatalog-collection-btn');
+                console.log('Agregando event listeners a colecciones:', collectionButtons.length);
+                
+                collectionButtons.forEach(button => {
+                  // Usar onclick directamente como en React
+                  button.onclick = async function() {
+                    console.log('=== CLICK EN COLECCIÓN ===');
+                    const collectionId = parseInt(this.getAttribute('data-collection-id'));
+                    console.log('Click en colección:', collectionId, 'selectedCollection actual:', selectedCollection);
+                    
+                    if (selectedCollection === collectionId) {
+                      // Si ya está seleccionada, deseleccionar
+                      console.log('Deseleccionando colección');
+                      selectedCollection = null;
+                      products = [];
+                      filteredProducts = [];
+                      currentPage = 1;
+                      renderProducts();
+                    } else {
+                      // Seleccionar nueva colección
+                      console.log('Seleccionando nueva colección:', collectionId);
+                      selectedCollection = collectionId;
+                      currentPage = 1;
+                      // Aseguramos que page se actualice antes de que selectedCollection cambie
+                      setTimeout(function() {
+                        selectedCollection = collectionId;
+                      }, 0);
+                    }
+                  };
+                });
+              }
+              
+              // Mobile Menu Toggle
+              const mobileMenuBtn = document.getElementById(catalogId + '-mobile-menu-btn');
+              const sidebar = document.querySelector('#' + catalogId + ' .productCatalog-sidebar');
+              
+              if (mobileMenuBtn && sidebar) {
+                mobileMenuBtn.addEventListener('click', function() {
+                  sidebar.classList.toggle('mobile-open');
+                  const isOpen = sidebar.classList.contains('mobile-open');
+                  this.innerHTML = isOpen ? 
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Cerrar' :
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>Familias';
+                });
+              }
+              
+              // Initialize
+              document.addEventListener('DOMContentLoaded', function() {
+                console.log('DOM Content Loaded - Inicializando catálogo:', catalogId);
+                
+                // Familia search
+                const familiaSearch = document.getElementById(catalogId + '-familia-search');
+                if (familiaSearch) {
+                  console.log('Familia search encontrado');
+                  familiaSearch.addEventListener('input', function(e) {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const familiaItems = document.querySelectorAll('#' + catalogId + '-families .productCatalog-familia-item');
+                    familiaItems.forEach(item => {
+                      const text = item.textContent.toLowerCase();
+                      item.style.display = text.includes(searchTerm) ? 'block' : 'none';
+                    });
+                  });
+                } else {
+                  console.error('No se encontró familia search');
+                }
+                
+                // Product search
+                const productSearch = document.getElementById(catalogId + '-product-search');
+                if (productSearch) {
+                  productSearch.addEventListener('input', function(e) {
+                    searchTerm = e.target.value;
+                  });
+                  
+                  productSearch.addEventListener('keyup', function(e) {
+                    if (e.key === 'Enter') {
+                      loadProductsByCodeOrDesc(e.currentTarget.value, 1);
+                    }
+                  });
+                }
+                
+                // Search type
+                const searchTypeSelect = document.getElementById(catalogId + '-search-type');
+                if (searchTypeSelect) {
                 searchTypeSelect.addEventListener('change', function(e) {
                   searchType = parseInt(e.target.value);
                 });
               }
               
-              // Búsqueda de familias en tiempo real
-              if (familiaSearchInput && !familiaSearchInput.hasAttribute('data-listener-attached')) {
-                familiaSearchInput.setAttribute('data-listener-attached', 'true');
-                familiaSearchInput.addEventListener('input', function(e) {
-                  const searchTerm = e.target.value.toLowerCase();
-                  const familyElements = familiesContainer.querySelectorAll('.productCatalog-familia-item');
-                  
-                  familyElements.forEach(element => {
-                    const familyName = element.querySelector('.productCatalog-familia-name').textContent.toLowerCase();
-                    if (familyName.includes(searchTerm)) {
-                      element.style.display = 'block';
+                // Pagination
+                const prevBtn = document.getElementById(catalogId + '-prev-btn');
+                const nextBtn = document.getElementById(catalogId + '-next-btn');
+                
+                if (prevBtn) {
+                  prevBtn.addEventListener('click', function() {
+                    if (currentPage > 1) {
+                      currentPage--;
+                      if (searchTerm.length > 0) {
+                        loadProductsByCodeOrDesc(searchTerm, currentPage);
                     } else {
-                      element.style.display = 'none';
+                        loadProducts(selectedFamilia, selectedCollection, currentPage);
+                      }
                     }
                   });
-                });
+                }
+                
+                if (nextBtn) {
+                  nextBtn.addEventListener('click', function() {
+                    currentPage++;
+                    if (searchTerm.length > 0) {
+                      loadProductsByCodeOrDesc(searchTerm, currentPage);
+                    } else {
+                      loadProducts(selectedFamilia, selectedCollection, currentPage);
+                    }
+                  });
+                }
+                
+                // Load initial data
+                console.log('Cargando datos iniciales...');
+              loadFamilies();
+              });
+              
+              // useEffect equivalent - maneja las peticiones automáticamente
+              function checkAndLoadProducts() {
+                if (selectedFamilia !== null && selectedCollection !== null) {
+                  if (searchTerm.length > 0) {
+                    loadProductsByCodeOrDesc(searchTerm, currentPage);
+                  } else {
+                    loadProducts(selectedFamilia, selectedCollection, currentPage);
+                  }
+                }
               }
               
-              // Inicializar catálogo
-              loadFamilies();
+              // Simular useEffect para selectedFamilia, selectedCollection, page
+              let lastSelectedFamilia = null;
+              let lastSelectedCollection = null;
+              let lastPage = 1;
+              
+              function updateProductsIfNeeded() {
+                if (selectedFamilia !== lastSelectedFamilia || 
+                    selectedCollection !== lastSelectedCollection || 
+                    currentPage !== lastPage) {
+                  
+                  lastSelectedFamilia = selectedFamilia;
+                  lastSelectedCollection = selectedCollection;
+                  lastPage = currentPage;
+                  
+                  checkAndLoadProducts();
+                }
+              }
+              
+              // Verificar cambios cada 100ms
+              setInterval(updateProductsIfNeeded, 100);
             })();
           </script>
         `;
@@ -783,11 +889,7 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
         .website-section.active {
             display: block;
         }
-        
-        /* Ensure absolutely positioned elements are properly positioned within sections */
-        .website-section > div[style*="position: absolute"] {
-            position: absolute !important;
-        }
+     
         
         button[data-href] {
             cursor: pointer;
@@ -827,9 +929,26 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
         /* Content Below Header */
         .productCatalog-content-below-header {
           display: flex;
+          flex-direction: column;
           flex: 1;
           height: calc(100vh - 100px);
           overflow: hidden;
+        }
+        
+        /* Desktop Layout */
+        .productCatalog-desktop-layout {
+          display: flex;
+          width: 100%;
+          overflow: hidden;
+          height: 100%;
+        }
+        
+        /* Mobile Toggle */
+        .productCatalog-mobile-toggle {
+          display: none;
+          padding: 12px 24px;
+          background-color: #f9fafb;
+          border-bottom: 1px solid #e5e7eb;
         }
         
         /* Sidebar - Categorías */
@@ -844,24 +963,20 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
           box-shadow: 2px 0 8px rgba(0, 0, 0, 0.02);
         }
 
+        @media (max-width: 768px) {
+  .productCatalog-sidebar {
+ width: 100% !important;
+        }
+}
+
         .productCatalog-sidebar-header {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
+
           padding: 20px 24px;
           text-align: left;
           position: relative;
           overflow: hidden;
         }
 
-        .productCatalog-sidebar-header::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
-        }
 
         .productCatalog-sidebar-header h2 {
           margin: 0;
@@ -869,7 +984,7 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
           font-weight: 600;
           letter-spacing: 1px;
           text-transform: uppercase;
-          color: white;
+         color: rgb(17, 24, 39);
           position: relative;
           z-index: 1;
         }
@@ -1006,26 +1121,13 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
         }
 
         .productCatalog-collection-btn.active {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border-color: #667eea;
-          font-weight: 600;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+         background: #e0241b;
+    color: #ffffff;
+    font-weight: 500;
+    transform: translateX(8px);
+    
         }
 
-        .productCatalog-collection-btn.active::after {
-          content: '';
-          position: absolute;
-          bottom: -2px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 0;
-          height: 0;
-          border-left: 6px solid transparent;
-          border-right: 6px solid transparent;
-          border-top: 6px solid #667eea;
-        }
         
         .productCatalog-search-container {
           min-width: 300px;
@@ -1096,7 +1198,7 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
           background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
           border: 1px solid #e2e8f0;
           border-radius: 16px;
-          overflow: hidden;
+     
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           cursor: pointer;
           position: relative;
@@ -1278,6 +1380,96 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
           border-color: #6c757d;
           cursor: not-allowed;
           opacity: 0.65;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+          .productCatalog-sidebar {
+            width: 250px;
+          }
+          
+          .productCatalog-products-grid {
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+          }
+        }
+        
+        @media (max-width: 768px) {
+          .productCatalog-mobile-toggle {
+            display: block;
+          }
+          
+          .productCatalog-desktop-layout {
+            flex-direction: column;
+          }
+          
+          .productCatalog-sidebar {
+            width: 100%;
+            height: auto;
+            max-height: 300px;
+            display: none;
+          }
+          
+          .productCatalog-sidebar.mobile-open {
+            display: grid;
+          }
+          
+          .productCatalog-right-content {
+            width: 100%;
+          }
+          
+          .productCatalog-products-grid {
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            padding: 16px;
+          }
+          
+          .productCatalog-products-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+          }
+          
+          .productCatalog-search-container {
+            min-width: auto;
+          }
+          
+          .search-row {
+            flex-direction: column;
+            gap: 8px;
+          }
+          
+          .search-input-container,
+          .search-select-container {
+            min-width: auto;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .productCatalog-products-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+          }
+          
+          .productCatalog-sidebar {
+            max-height: 250px;
+          }
+          
+          .productCatalog-familia-item {
+            padding: 12px 16px;
+            font-size: 13px;
+          }
+          
+          .productCatalog-collections-nav {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+          
+          .productCatalog-collection-btn {
+            white-space: nowrap;
+            font-size: 13px;
+            padding: 6px 12px;
+          }
         }
     </style>
 </head>
