@@ -3,19 +3,22 @@ import styled from 'styled-components';
 import { Move, Maximize2, Edit3, Trash2, Settings } from 'lucide-react';
 import { useEditor } from '../context/EditorContext';
 import CatalogSection from './views/CatalogSection';
+import CarouselComponent from './CarouselComponent';
+import ModernCard from './ModernCard';
+import CardsCarousel from './CardsCarousel';
 
 const ElementWrapper = styled.div`
   ${props => {
     // Elementos que se pueden mover libremente tienen posición absoluta
-    if (["section", "container", "header", "card", "grid", "columns", "text", "heading", "button", "image", "catalog-section"].includes(props.elementType)) {
+    if (["section", "container", "header", "card", "modernCard", "cardsCarousel", "grid", "columns", "text", "heading", "button", "image", "catalog-section", "carousel"].includes(props.elementType)) {
       return `
         position: absolute;
         left: ${props.position?.x ?? 0}px;
         top: ${props.position?.y ?? 0}px;
         width: ${props.size?.width || 'auto'};
         height: ${props.size?.height || 'auto'};
-        min-width: ${props.elementType === 'section' ? '400px' : props.elementType === 'catalog-section' ? '800px' : '100px'};
-        min-height: ${props.elementType === 'section' ? '200px' : props.elementType === 'catalog-section' ? '600px' : '30px'};
+        min-width: ${props.elementType === 'section' ? '400px' : props.elementType === 'catalog-section' ? '800px' : props.elementType === 'carousel' ? '600px' : props.elementType === 'modernCard' ? '300px' : props.elementType === 'cardsCarousel' ? '800px' : '100px'};
+        min-height: ${props.elementType === 'section' ? '200px' : props.elementType === 'catalog-section' ? '600px' : props.elementType === 'carousel' ? '300px' : props.elementType === 'modernCard' ? '400px' : props.elementType === 'cardsCarousel' ? '500px' : '30px'};
         z-index: ${props.isDragging ? 1000 : props.isSelected ? 100 : 1};
       `;
     } else {
@@ -369,16 +372,32 @@ const ElementRenderer = ({
   const safe = (v, fallback) => (typeof v === 'number' && !isNaN(v) && v >= 0 ? v : fallback);
   const safeWidth = safe(canvasWidth, 1200);
   const safeHeight = safe(canvasHeight, 800);
-  const canvasLeft = safe(realBounds?.canvas?.left, 0);
-  const canvasTop = safe(realBounds?.canvas?.top, 0);
   
-  // Definir padding igual que en CanvasArea
-  const CANVAS_PADDING = 40;
-  // Limites duros del canvas-area (UNIFICADOS)
+  // Función para obtener los límites reales del canvas
+  const getCanvasBounds = () => {
+    const canvasArea = document.querySelector('.canvas-area');
+    if (canvasArea) {
+      const rect = canvasArea.getBoundingClientRect();
+      return {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height
+      };
+    }
+    return {
+      left: 0,
+      top: 0,
+      width: safeWidth,
+      height: safeHeight
+    };
+  };
+  
+  // Limites del canvas
   const leftLimit = 0;
   const rightLimit = safeWidth;
-  const topLimit = 0; // sin header automático
-  const bottomLimit = safeHeight - CANVAS_PADDING;
+  const topLimit = 0; // Permitir pegar al top
+  const bottomLimit = safeHeight;
   const limitsValid = rightLimit - leftLimit > 50 && bottomLimit - topLimit > 50;
 
   // Estado para edición inline
@@ -387,213 +406,102 @@ const ElementRenderer = ({
   const inputRef = useRef(null);
 
   // Determinar si es movible/editable
-  const isMovable = ["section", "container", "header", "columns", "card", "grid", "text", "heading", "button", "image", "catalog-section"].includes(element.type);
+  const isMovable = ["section", "container", "header", "columns", "card", "grid", "text", "heading", "button", "image", "catalog-section", "carousel", "cardsCarousel"].includes(element.type);
 
   // Función para calcular snap automático y líneas activas
   const calculateSnapPosition = (newX, newY) => {
-    const tolerance = 10;
+    const tolerance = 20; // Tolerancia ajustada para mejor precisión
     let snappedX = newX;
     let snappedY = newY;
     const activeVerticalLines = [];
     const activeHorizontalLines = [];
-    const currentRect = elementRef.current?.getBoundingClientRect();
-    if (!currentRect) return { x: newX, y: newY, snapLines: { vertical: [], horizontal: [] } };
-    const elementWidth = elementRef.current.offsetWidth || (elementRef.current.getBoundingClientRect()?.width ?? 0);
-    const elementHeight = elementRef.current.offsetHeight || (elementRef.current.getBoundingClientRect()?.height ?? 0);
-    // Snap exacto a los límites
-    if (Math.abs(snappedX - leftLimit) < tolerance || snappedX < tolerance) {
-      snappedX = leftLimit;
-      if (!activeVerticalLines.includes(leftLimit)) activeVerticalLines.push(leftLimit);
-    }
-    if (Math.abs((snappedX + elementWidth) - rightLimit) < tolerance || (snappedX + elementWidth) > rightLimit - tolerance) {
-      snappedX = rightLimit - elementWidth;
-      if (!activeVerticalLines.includes(rightLimit)) activeVerticalLines.push(rightLimit);
-    }
-    if (Math.abs(snappedY - topLimit) < tolerance || snappedY < topLimit + tolerance) {
-      snappedY = topLimit;
-      if (!activeHorizontalLines.includes(topLimit)) activeHorizontalLines.push(topLimit);
-    }
-    // Forzar snap si estamos muy cerca del borde izquierdo o header
-    if (snappedX < tolerance) {
-      snappedX = 0;
-      if (!activeVerticalLines.includes(0)) activeVerticalLines.push(0);
-    }
-    if (Math.abs(snappedY - topLimit) < tolerance || snappedY < topLimit + tolerance) {
-      snappedY = topLimit;
-      if (!activeHorizontalLines.includes(topLimit)) activeHorizontalLines.push(topLimit);
-    }
-         // Código del header eliminado - ya no hay referencias
-    // Centro, otros elementos, etc. (igual que antes)
-    const canvasCenterX = canvasLeft + (canvasWidth || 1200) / 2;
-    const canvasCenterY = canvasTop + (canvasHeight || 800) / 2;
+    
+    const elementWidth = elementRef.current?.offsetWidth || 100;
+    const elementHeight = elementRef.current?.offsetHeight || 100;
+    
+    // Snap al centro del canvas (horizontal y vertical)
+    const canvasCenterX = safeWidth / 2;
+    const canvasCenterY = safeHeight / 2;
     const elementCenterX = snappedX + elementWidth / 2;
     const elementCenterY = snappedY + elementHeight / 2;
-
-    if (!activeVerticalLines.includes(snappedX)) {
-      if (Math.abs(elementCenterX - canvasCenterX) < tolerance) {
-        snappedX = canvasCenterX - elementWidth / 2;
-        activeVerticalLines.push(canvasCenterX);
-      }
+    
+    // Centrado horizontal del canvas
+    if (Math.abs(elementCenterX - canvasCenterX) < tolerance) {
+      snappedX = canvasCenterX - elementWidth / 2;
+      activeVerticalLines.push(canvasCenterX);
     }
-    if (!activeHorizontalLines.includes(snappedY)) {
-      if (Math.abs(elementCenterY - canvasCenterY) < tolerance) {
-        snappedY = canvasCenterY - elementHeight / 2;
-        activeHorizontalLines.push(canvasCenterY);
-      }
+    
+    // Centrado vertical del canvas
+    if (Math.abs(elementCenterY - canvasCenterY) < tolerance) {
+      snappedY = canvasCenterY - elementHeight / 2;
+      activeHorizontalLines.push(canvasCenterY);
     }
-         elements.forEach(otherElement => {
-       if (otherElement.id === element.id) return;
+    
+    // Snap a otros elementos para centrado relativo
+    elements.forEach(otherElement => {
+      if (otherElement.id === element.id) return;
+      
       const otherX = otherElement.position?.x || 0;
       const otherY = otherElement.position?.y || 0;
       const otherWidth = parseInt(otherElement.size?.width) || 100;
       const otherHeight = parseInt(otherElement.size?.height) || 100;
-      const otherLeft = otherX;
-      const otherRight = otherX + otherWidth;
+      
+      // Centrado horizontal con otros elementos
       const otherCenterX = otherX + otherWidth / 2;
-      const otherTop = otherY;
-      const otherBottom = otherY + otherHeight;
-      const otherCenterY = otherY + otherHeight / 2;
-      if (!activeVerticalLines.includes(snappedX)) {
-        if (Math.abs(snappedX - otherLeft) < tolerance) {
-          snappedX = otherLeft;
-          activeVerticalLines.push(otherLeft);
-        } else if (Math.abs((snappedX + elementWidth) - otherRight) < tolerance) {
-          snappedX = otherRight - elementWidth;
-          activeVerticalLines.push(otherRight);
-        } else if (Math.abs(elementCenterX - otherCenterX) < tolerance) {
-          snappedX = otherCenterX - elementWidth / 2;
-          activeVerticalLines.push(otherCenterX);
-        } else if (Math.abs(snappedX - otherRight) < tolerance) {
-          snappedX = otherRight;
-          activeVerticalLines.push(otherRight);
-        } else if (Math.abs((snappedX + elementWidth) - otherLeft) < tolerance) {
-          snappedX = otherLeft - elementWidth;
-          activeVerticalLines.push(otherLeft);
-        }
+      if (Math.abs(elementCenterX - otherCenterX) < tolerance) {
+        snappedX = otherCenterX - elementWidth / 2;
+        activeVerticalLines.push(otherCenterX);
       }
-      if (!activeHorizontalLines.includes(snappedY)) {
-        if (Math.abs(snappedY - otherTop) < tolerance) {
-          snappedY = otherTop;
-          activeHorizontalLines.push(otherTop);
-        } else if (Math.abs((snappedY + elementHeight) - otherBottom) < tolerance) {
-          snappedY = otherBottom - elementHeight;
-          activeHorizontalLines.push(otherBottom);
-        } else if (Math.abs(elementCenterY - otherCenterY) < tolerance) {
-          snappedY = otherCenterY - elementHeight / 2;
-          activeHorizontalLines.push(otherCenterY);
-        } else if (Math.abs(snappedY - otherBottom) < tolerance) {
-          snappedY = otherBottom;
-          activeHorizontalLines.push(otherBottom);
-        } else if (Math.abs((snappedY + elementHeight) - otherTop) < tolerance) {
-          snappedY = otherTop - elementHeight;
-          activeHorizontalLines.push(otherTop);
-        }
+      
+      // Centrado vertical con otros elementos
+      const otherCenterY = otherY + otherHeight / 2;
+      if (Math.abs(elementCenterY - otherCenterY) < tolerance) {
+        snappedY = otherCenterY - elementHeight / 2;
+        activeHorizontalLines.push(otherCenterY);
+      }
+      
+      // Alineación con bordes de otros elementos
+      if (Math.abs(snappedX - otherX) < tolerance) {
+        snappedX = otherX;
+        activeVerticalLines.push(otherX);
+      } else if (Math.abs((snappedX + elementWidth) - (otherX + otherWidth)) < tolerance) {
+        snappedX = otherX + otherWidth - elementWidth;
+        activeVerticalLines.push(otherX + otherWidth);
+      }
+      
+      if (Math.abs(snappedY - otherY) < tolerance) {
+        snappedY = otherY;
+        activeHorizontalLines.push(otherY);
+      } else if (Math.abs((snappedY + elementHeight) - (otherY + otherHeight)) < tolerance) {
+        snappedY = otherY + otherHeight - elementHeight;
+        activeHorizontalLines.push(otherY + otherHeight);
       }
     });
-
-    // --- SNAP PROFESIONAL ---
-    // 1. Límite duro a los bordes del canvas-area
-    if (snappedX < leftLimit) snappedX = leftLimit;
-    if (snappedX + elementWidth > rightLimit) snappedX = rightLimit - elementWidth;
-
-         // 2. Snap magnético a otros elementos (bordes y centros)
-     elements.forEach(otherElement => {
-       if (otherElement.id === element.id) return;
-       const otherX = otherElement.position?.x || 0;
-       const otherY = otherElement.position?.y || 0;
-       const otherWidth = parseInt(otherElement.size?.width) || 100;
-       const otherHeight = parseInt(otherElement.size?.height) || 100;
-       const otherLeft = otherX;
-       const otherRight = otherX + otherWidth;
-       const otherCenterX = otherX + otherWidth / 2;
-       const otherTop = otherY;
-       const otherBottom = otherY + otherHeight;
-       const otherCenterY = otherY + otherHeight / 2;
-       
-       // SNAP ESPECIAL PARA CONTENEDORES - centrado automático
-       const isContainer = ['container', 'header', 'section', 'grid', 'columns'].includes(otherElement.type);
-       if (isContainer) {
-         // Snap al centro del contenedor (más fuerte)
-         const centerTolerance = 15; // Mayor tolerancia para contenedores
-         
-         // Centro horizontal del contenedor
-         if (Math.abs(snappedX + elementWidth / 2 - otherCenterX) < centerTolerance) {
-           snappedX = otherCenterX - elementWidth / 2;
-           activeVerticalLines.push(otherCenterX);
-         }
-         
-         // Centro vertical del contenedor
-         if (Math.abs(snappedY + elementHeight / 2 - otherCenterY) < centerTolerance) {
-           snappedY = otherCenterY - elementHeight / 2;
-           activeHorizontalLines.push(otherCenterY);
-         }
-         
-         // Snap a las guías de tercios del contenedor
-         const oneThirdX = otherX + otherWidth / 3;
-         const twoThirdX = otherX + (otherWidth * 2) / 3;
-         const oneThirdY = otherY + otherHeight / 3;
-         const twoThirdY = otherY + (otherHeight * 2) / 3;
-         
-         if (Math.abs(snappedX + elementWidth / 2 - oneThirdX) < tolerance) {
-           snappedX = oneThirdX - elementWidth / 2;
-           activeVerticalLines.push(oneThirdX);
-         }
-         if (Math.abs(snappedX + elementWidth / 2 - twoThirdX) < tolerance) {
-           snappedX = twoThirdX - elementWidth / 2;
-           activeVerticalLines.push(twoThirdX);
-         }
-         if (Math.abs(snappedY + elementHeight / 2 - oneThirdY) < tolerance) {
-           snappedY = oneThirdY - elementHeight / 2;
-           activeHorizontalLines.push(oneThirdY);
-         }
-         if (Math.abs(snappedY + elementHeight / 2 - twoThirdY) < tolerance) {
-           snappedY = twoThirdY - elementHeight / 2;
-           activeHorizontalLines.push(twoThirdY);
-         }
-       }
-       
-       // Snap horizontal (izquierda, derecha, centro)
-       if (Math.abs(snappedX - otherLeft) < tolerance) {
-         snappedX = otherLeft;
-         activeVerticalLines.push(otherLeft);
-       } else if (Math.abs((snappedX + elementWidth) - otherRight) < tolerance) {
-         snappedX = otherRight - elementWidth;
-         activeVerticalLines.push(otherRight);
-       } else if (Math.abs(snappedX + elementWidth / 2 - otherCenterX) < tolerance) {
-         snappedX = otherCenterX - elementWidth / 2;
-         activeVerticalLines.push(otherCenterX);
-       }
-       // Snap vertical (tope, fondo, centro)
-       if (Math.abs(snappedY - otherTop) < tolerance) {
-         snappedY = otherTop;
-         activeHorizontalLines.push(otherTop);
-       } else if (Math.abs((snappedY + elementHeight) - otherBottom) < tolerance) {
-         snappedY = otherBottom - elementHeight;
-         activeHorizontalLines.push(otherBottom);
-       } else if (Math.abs(snappedY + elementHeight / 2 - otherCenterY) < tolerance) {
-         snappedY = otherCenterY - elementHeight / 2;
-         activeHorizontalLines.push(otherCenterY);
-       }
-       // 3. Snap sugerido: si hay un elemento arriba, sugerir su borde inferior como tope
-       if (snappedY > otherBottom && Math.abs(snappedY - otherBottom) < tolerance) {
-         snappedY = otherBottom;
-         activeHorizontalLines.push(otherBottom);
-       }
-     });
-    // --- SOLO AL FINAL: limitar para que no se desborde ---
-    if (limitsValid) {
-      if (snappedX < leftLimit) snappedX = leftLimit;
-      if (snappedX + elementWidth > rightLimit) snappedX = rightLimit - elementWidth;
-      if (snappedY < topLimit) snappedY = topLimit;
+    
+    // Snap a los límites del canvas (solo cuando está muy cerca)
+    if (Math.abs(snappedX - leftLimit) < tolerance) {
+      snappedX = leftLimit;
+      activeVerticalLines.push(leftLimit);
     }
-
-    return {
-      x: snappedX,
-      y: snappedY,
-      snapLines: {
-        vertical: [...new Set(activeVerticalLines)],
-        horizontal: [...new Set(activeHorizontalLines)]
-      }
+    if (Math.abs((snappedX + elementWidth) - rightLimit) < tolerance) {
+      snappedX = rightLimit - elementWidth;
+      activeVerticalLines.push(rightLimit);
+    }
+    // Snap al top del canvas
+    if (Math.abs(snappedY - topLimit) < tolerance) {
+      snappedY = topLimit;
+      activeHorizontalLines.push(topLimit);
+    }
+    // Snap al bottom del canvas
+    if (Math.abs((snappedY + elementHeight) - bottomLimit) < tolerance) {
+      snappedY = bottomLimit - elementHeight;
+      activeHorizontalLines.push(bottomLimit);
+    }
+    
+    return { 
+      x: snappedX, 
+      y: snappedY, 
+      snapLines: { vertical: activeVerticalLines, horizontal: activeHorizontalLines } 
     };
   };
 
@@ -612,10 +520,13 @@ const ElementRenderer = ({
     e.stopPropagation();
     setIsDragging(true);
     
-    const rect = elementRef.current.getBoundingClientRect();
+    const canvasBounds = getCanvasBounds();
+    const elementRect = elementRef.current.getBoundingClientRect();
+    
+    // Calcular el offset relativo al canvas, no al viewport
     setDragStart({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
+      x: e.clientX - canvasBounds.left - (element.position?.x || 0),
+      y: e.clientY - canvasBounds.top - (element.position?.y || 0)
     });
     
     selectElement(element.id);
@@ -625,17 +536,22 @@ const ElementRenderer = ({
     if (!isDragging && !isResizing) return;
     
     if (isDragging) {
-      const canvasArea = document.querySelector('.canvas-area');
-      const canvasRect = canvasArea ? canvasArea.getBoundingClientRect() : elementRef.current.parentElement.getBoundingClientRect();
-      let newX = e.clientX - canvasRect.left - dragStart.x;
-      let newY = e.clientY - canvasRect.top - dragStart.y;
-      newX = Math.max(leftLimit, newX); // permite llegar a 0 para todos los elementos, incluido header
-      newY = Math.max(topLimit, newY);
+      const canvasBounds = getCanvasBounds();
+      let newX = e.clientX - canvasBounds.left - dragStart.x;
+      let newY = e.clientY - canvasBounds.top - dragStart.y;
+      
+      // Aplicar límites básicos antes del snap
+      newX = Math.max(leftLimit, Math.min(newX, rightLimit - (elementRef.current?.offsetWidth || 100)));
+      newY = Math.max(0, Math.min(newY, bottomLimit - (elementRef.current?.offsetHeight || 100)));
+      
       const { x: snappedX, y: snappedY, snapLines } = calculateSnapPosition(newX, newY);
-      const limitedX = Math.max(leftLimit, Math.min(snappedX, rightLimit - elementRef.current.offsetWidth));
-      const limitedY = Math.max(topLimit, snappedY); // Eliminado el límite inferior para permitir movimiento libre hacia abajo
+      
+      // Aplicar límites finales después del snap
+      const finalX = Math.max(leftLimit, Math.min(snappedX, rightLimit - (elementRef.current?.offsetWidth || 100)));
+      const finalY = Math.max(0, Math.min(snappedY, bottomLimit - (elementRef.current?.offsetHeight || 100)));
+      
       updateElement(element.id, {
-        position: { x: limitedX, y: limitedY }
+        position: { x: finalX, y: finalY }
       });
       setSnapLines(snapLines);
     }
@@ -1025,6 +941,46 @@ const ElementRenderer = ({
           </div>
         );
 
+      case 'carousel':
+        console.log('ElementRenderer: Rendering carousel with onTextPositionChange callback:', !!onMove);
+        return (
+          <CarouselComponent 
+            images={element.props?.images || []}
+            slides={element.props?.slides || []}
+            autoPlay={element.props?.autoPlay !== false}
+            showDots={element.props?.showDots !== false}
+            showArrows={element.props?.showArrows !== false}
+            interval={element.props?.interval || 3000}
+            isPreviewMode={isPreviewMode}
+            onTextPositionChange={(slideIndex, newPosition) => {
+              console.log('ElementRenderer: onTextPositionChange called', { slideIndex, newPosition });
+              // Update the element's slides with the new text position
+              const currentSlides = element.props?.slides || [];
+              const updatedSlides = [...currentSlides];
+              if (updatedSlides[slideIndex]) {
+                updatedSlides[slideIndex] = {
+                  ...updatedSlides[slideIndex],
+                  textPosition: newPosition
+                };
+                console.log('ElementRenderer: Updated slides', updatedSlides);
+                // Update the element in the editor
+                if (onMove) {
+                  console.log('ElementRenderer: Calling onMove with updated element');
+                  onMove(element.id, {
+                    ...element,
+                    props: {
+                      ...element.props,
+                      slides: updatedSlides
+                    }
+                  });
+                } else {
+                  console.log('ElementRenderer: onMove is not available');
+                }
+              }
+            }}
+          />
+        );
+
       case 'card':
         return (
           <CardElement styles={element.styles}>
@@ -1060,6 +1016,27 @@ const ElementRenderer = ({
               {element.props?.content || 'Descripción de la tarjeta con información relevante.'}
             </p>
           </CardElement>
+        );
+
+      case 'modernCard':
+        return (
+          <ModernCard 
+            props={element.props}
+            styles={element.styles}
+            isPreviewMode={isPreviewMode}
+          />
+        );
+
+      case 'cardsCarousel':
+        return (
+          <CardsCarousel 
+            cards={element.props?.cards || []}
+            isPreviewMode={isPreviewMode}
+            autoPlay={element.props?.autoPlay !== false}
+            interval={element.props?.interval || 5000}
+            showDots={element.props?.showDots !== false}
+            showArrows={element.props?.showArrows !== false}
+          />
         );
       
       default:

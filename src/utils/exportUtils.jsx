@@ -73,6 +73,119 @@ export const generateSectionHTML = (section, allSections) => {
       case 'triangle':
         return `<div style="${fullStyles} width: 0; height: 0; border-left: 60px solid transparent; border-right: 60px solid transparent; border-bottom: 100px solid ${styles?.background || '#f59e0b'};"></div>`;
 
+      case 'carousel':
+        const carouselId = `carousel-${Math.random().toString(36).substr(2, 9)}`;
+        const images = props?.images || [];
+        const autoPlay = props?.autoPlay !== false;
+        const showDots = props?.showDots !== false;
+        const showArrows = props?.showArrows !== false;
+        const interval = props?.interval || 3000;
+        
+        const carouselHTML = `
+          <div id="${carouselId}" class="carousel-container" style="${fullStyles} position: relative; overflow: hidden; border-radius: 8px;">
+            <div class="carousel-slides" style="display: flex; transition: transform 0.5s ease-in-out; height: 100%;">
+              ${images.map((image, index) => `
+                <div class="carousel-slide" style="min-width: 100%; height: 100%; flex-shrink: 0;">
+                  <img src="${image.src || image}" alt="${image.alt || `Slide ${index + 1}`}" style="width: 100%; height: 100%; object-fit: cover;" />
+                  ${image.caption ? `<div class="carousel-caption" style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: white; padding: 20px; text-align: center;">${image.caption}</div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+            
+            ${showArrows ? `
+              <button class="carousel-arrow carousel-prev" onclick="moveCarousel('${carouselId}', -1)" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; z-index: 10;">‹</button>
+              <button class="carousel-arrow carousel-next" onclick="moveCarousel('${carouselId}', 1)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; z-index: 10;">›</button>
+            ` : ''}
+            
+            ${showDots ? `
+              <div class="carousel-dots" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 10;">
+                ${images.map((_, index) => `
+                  <button class="carousel-dot" onclick="goToSlide('${carouselId}', ${index})" style="width: 12px; height: 12px; border-radius: 50%; border: none; background: ${index === 0 ? 'white' : 'rgba(255,255,255,0.5)'}; cursor: pointer; transition: background 0.3s ease;"></button>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+          
+          <script>
+            (function() {
+              const carousel = document.getElementById('${carouselId}');
+              const slides = carousel.querySelector('.carousel-slides');
+              let currentSlide = 0;
+              const totalSlides = ${images.length};
+              let autoplayInterval;
+              
+              function updateCarousel() {
+                slides.style.transform = \`translateX(-\${currentSlide * 100}%)\`;
+                
+                // Update dots
+                const dots = carousel.querySelectorAll('.carousel-dot');
+                dots.forEach((dot, index) => {
+                  dot.style.background = index === currentSlide ? 'white' : 'rgba(255,255,255,0.5)';
+                });
+              }
+              
+              function nextSlide() {
+                currentSlide = (currentSlide + 1) % totalSlides;
+                updateCarousel();
+              }
+              
+              function prevSlide() {
+                currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+                updateCarousel();
+              }
+              
+              // Make functions global
+              window.moveCarousel = function(carouselId, direction) {
+                if (carouselId === '${carouselId}') {
+                  if (direction === 1) {
+                    nextSlide();
+                  } else {
+                    prevSlide();
+                  }
+                  resetAutoplay();
+                }
+              };
+              
+              window.goToSlide = function(carouselId, slideIndex) {
+                if (carouselId === '${carouselId}') {
+                  currentSlide = slideIndex;
+                  updateCarousel();
+                  resetAutoplay();
+                }
+              };
+              
+              function resetAutoplay() {
+                if (autoplayInterval) {
+                  clearInterval(autoplayInterval);
+                }
+                if (${autoPlay}) {
+                  autoplayInterval = setInterval(nextSlide, ${interval});
+                }
+              }
+              
+              // Initialize autoplay
+              if (${autoPlay}) {
+                autoplayInterval = setInterval(nextSlide, ${interval});
+              }
+              
+              // Pause autoplay on hover
+              carousel.addEventListener('mouseenter', () => {
+                if (autoplayInterval) {
+                  clearInterval(autoplayInterval);
+                }
+              });
+              
+              carousel.addEventListener('mouseleave', () => {
+                if (${autoPlay}) {
+                  autoplayInterval = setInterval(nextSlide, ${interval});
+                }
+              });
+            })();
+          </script>
+        `;
+        
+        return carouselHTML;
+
       case 'catalog-section':
         const catalogTitle = props?.title || 'Catálogo de Productos';
         const catalogSubtitle = props?.subtitle || 'Explora nuestra selección de productos';
@@ -98,6 +211,7 @@ export const generateSectionHTML = (section, allSections) => {
                 <p style="color: #6b7280; margin-top: 8px; margin: 0; font-size: clamp(14px, 2.5vw, 16px);">
                   Explora nuestra selección de productos
                 </p>
+
               </div>
             </div>
             
@@ -610,7 +724,7 @@ export const generateSectionHTML = (section, allSections) => {
                       '<p class="code" style="font-size: 12px; color: #6b7280; margin: 0 0 4px 0;">' + product.codigo + '</p>' +
                       '<p class="descripcion" style="font-weight: 500; color: #111827; font-size: 14px; margin: 0 0 8px 0; line-height: 1.3;">' + product.descripcion + '</p>' +
                       '<div class="product-actions" style="display: flex; gap: 8px; margin-top: 12px;">' +
-                        '<button class="view-product-btn" data-product-id="' + (product.id || index) + '" style="flex: 1; padding: 8px 12px; background-color: #e0241b; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Ver Detalles</button>' +
+                        '<button class="view-product-btn" data-product-id="' + (product.id || product.codigo || index) + '" onclick="handleViewProductClick(event, ' + JSON.stringify(product.id || product.codigo || index) + ')" style="flex: 1; padding: 8px 12px; background-color: #e0241b; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Ver Detalles</button>' +
                       '</div>' +
                       (product.desabasto ? '<div class="desabasto" style="display: inline-block; padding: 2px 6px; font-size: 12px; font-weight: 500; background-color: #fee2e2; color: #dc2626; border-radius: 4px; margin-top: 4px;"><small>Agotado</small></div>' : '') +
                       (product.ultimas_piezas ? '<div class="ultima-piezas" style="display: inline-block; padding: 2px 6px; font-size: 12px; font-weight: 500; background-color: #fef3c7; color: #d97706; border-radius: 4px; margin-top: 4px;"><small>Últimas</small></div>' : '') +
@@ -883,7 +997,6 @@ export const generateSectionHTML = (section, allSections) => {
                   const articleData = { ...art, plantilla_data: plantillaData };
                   return articleData;
                 } catch (error) {
-                  console.error('Error fetching modal article:', error);
                   return null;
                 }
               }
@@ -921,6 +1034,28 @@ export const generateSectionHTML = (section, allSections) => {
                 const modal = document.getElementById('modal');
                 if (modal) {
                   modal.style.display = 'flex';
+                  modal.style.visibility = 'visible';
+                  modal.style.opacity = '1';
+                }
+              }
+
+              function showLoadingModal() {
+                const modal = document.getElementById('modal');
+                if (modal) {
+                  modal.style.display = 'flex';
+                  modal.style.visibility = 'visible';
+                  modal.style.opacity = '1';
+                  modal.innerHTML = '<div class="product-modal-overlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 1rem;"><div class="product-modal-content" style="background: white; border-radius: 16px; max-width: 400px; width: 100%; padding: 2rem; text-align: center;"><div style="margin-bottom: 1rem;"><div class="loading-spinner" style="width: 40px; height: 40px; border: 4px solid #f3f4f6; border-top: 4px solid #e0241b; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div></div><h3 style="color: #374151; margin-bottom: 0.5rem;">Cargando producto...</h3><p style="color: #6b7280; font-size: 0.875rem;">Por favor espera mientras se cargan los detalles</p></div></div>';
+                }
+              }
+
+              function showErrorModal(message) {
+                const modal = document.getElementById('modal');
+                if (modal) {
+                  modal.style.display = 'flex';
+                  modal.style.visibility = 'visible';
+                  modal.style.opacity = '1';
+                  modal.innerHTML = '<div class="product-modal-overlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 1rem;"><div class="product-modal-content" style="background: white; border-radius: 16px; max-width: 500px; width: 100%; padding: 2rem;"><h2 style="color: #dc2626; margin-bottom: 1rem;">Error</h2><p style="color: #374151; margin-bottom: 1.5rem;">' + message + '</p><button onclick="hideModal()" style="padding: 8px 16px; background: #e0241b; color: white; border: none; border-radius: 6px; cursor: pointer;">Cerrar</button></div></div>';
                 }
               }
 
@@ -928,6 +1063,8 @@ export const generateSectionHTML = (section, allSections) => {
                 const modal = document.getElementById('modal');
                 if (modal) {
                   modal.style.display = 'none';
+                  modal.style.visibility = 'hidden';
+                  modal.style.opacity = '0';
                 }
                 isModalOpen = false;
                 modalArticle = null;
@@ -937,7 +1074,7 @@ export const generateSectionHTML = (section, allSections) => {
                 modalCurrentImageIndex = 0;
               }
 
-              // Fetch2 function for combinations
+              // Fetch2 function for combinations - CORREGIDO según CatalogSection.jsx
               async function fetch2(selectedIds) {
                 const data = {
                   id: 0,
@@ -985,10 +1122,10 @@ export const generateSectionHTML = (section, allSections) => {
                   if (response && response.length > 0) {
                     const newArticle = response[0];
                     
-                    // Update article with new information
+                    // Actualizar el artículo con la nueva información
                     modalArticle = newArticle;
                     
-                    // Reload images
+                    // Recargar imágenes del nuevo artículo
                     try {
                       const imgResponse = await fetch('http://hiplot.dyndns.org:84/api_dev/articulo_imagenes_get/' + newArticle.id);
                       const imgResult = await imgResponse.json();
@@ -997,13 +1134,14 @@ export const generateSectionHTML = (section, allSections) => {
                       modalImgs = [];
                     }
                     
-                    // Update combinations if article has new ones
+                    // Si el artículo tiene nuevas combinaciones, actualízalas
                     if (newArticle.opciones_de_variacion2 && newArticle.opciones_de_variacion2.length > 0) {
-                      modalOpciones = newArticle.opciones_de_variacion2.map((combinacion) => ({
+                      const combinacionesConfiguradas = newArticle.opciones_de_variacion2.map((combinacion) => ({
                         combinacion: combinacion.combinacion,
                         OpcionSelected: "",
                         opciones: combinacion.opciones || []
                       }));
+                      modalOpciones = combinacionesConfiguradas;
                     }
                   }
 
@@ -1033,7 +1171,12 @@ export const generateSectionHTML = (section, allSections) => {
               }
 
               async function BuscarArticuloPorCombinacion() {
-                if (!areAllCombinationsSelected()) {
+                // Cambiar la lógica: ejecutar con al menos una selección, no todas
+                const hasAnySelection = modalOpciones.some((combinacion) => 
+                  combinacion.OpcionSelected && combinacion.OpcionSelected !== ""
+                );
+                
+                if (!hasAnySelection) {
                   return;
                 }
 
@@ -1052,9 +1195,8 @@ export const generateSectionHTML = (section, allSections) => {
               }
 
               function handleModalOptionSelect(combinacionIndex, optionId) {
-                
-                
-                modalOpciones = modalOpciones.map((combinacion, index) => {
+                // Actualizar las opciones según CatalogSection.jsx
+                const newOpciones = modalOpciones.map((combinacion, index) => {
                   if (index === combinacionIndex) {
                     const updatedOpciones = combinacion.opciones.map((option) => ({
                       ...option,
@@ -1072,21 +1214,19 @@ export const generateSectionHTML = (section, allSections) => {
                   return combinacion;
                 });
                 
+                // Actualizar el estado
+                modalOpciones = newOpciones;
+                
                 // Verificar si hay al menos una opción seleccionada después de la actualización
-                const hasSelection = modalOpciones.some((combinacion) => 
+                const hasSelection = newOpciones.some((combinacion) => 
                   combinacion.OpcionSelected && combinacion.OpcionSelected !== ""
                 );
                 
-                
-                
-                
-                
                 // Si hay al menos una selección, ejecutar búsqueda automáticamente
                 if (hasSelection) {
-                  
                   setTimeout(() => {
                     BuscarArticuloPorCombinacion();
-                  }, 100);
+                  }, 100); // Pequeño delay para asegurar que el estado se actualice
                 }
                 
                 modalActiveIndex = null;
@@ -1095,7 +1235,9 @@ export const generateSectionHTML = (section, allSections) => {
 
               function renderModal() {
                 const modal = document.getElementById('modal');
-                if (!modal) return;
+                if (!modal) {
+                  return;
+                }
 
                 if (isModalOpen && modalArticle) {
                   let modalHTML = '<div class="product-modal-overlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 1rem;">';
@@ -1177,37 +1319,121 @@ export const generateSectionHTML = (section, allSections) => {
                 }
               }
 
-              // Add modal container to the page
-              const modalContainer = document.createElement('div');
-              modalContainer.id = 'modal';
-              modalContainer.style.position = 'fixed';
-              modalContainer.style.top = '0';
-              modalContainer.style.left = '0';
-              modalContainer.style.width = '100%';
-              modalContainer.style.height = '100%';
-              modalContainer.style.zIndex = '9999';
-              modalContainer.style.display = 'none';
-              document.body.appendChild(modalContainer);
+              // Add modal container to the page - Mejorado para asegurar que se cree correctamente
+              function initializeModal() {
+                let modalContainer = document.getElementById('modal');
+                if (!modalContainer) {
+                  modalContainer = document.createElement('div');
+                  modalContainer.id = 'modal';
+                  modalContainer.style.position = 'fixed';
+                  modalContainer.style.top = '0';
+                  modalContainer.style.left = '0';
+                  modalContainer.style.width = '100%';
+                  modalContainer.style.height = '100%';
+                  modalContainer.style.zIndex = '9999';
+                  modalContainer.style.display = 'none';
+                  modalContainer.style.visibility = 'hidden';
+                  modalContainer.style.opacity = '0';
+                  modalContainer.style.transition = 'opacity 0.3s ease';
+                  document.body.appendChild(modalContainer);
+                }
+                return modalContainer;
+              }
 
-              // Add view product button event listeners
+              // Inicializar modal al cargar
+              initializeModal();
+
+              // Add view product button event listeners - Mejorado para ser más robusto
               function addViewButtonsEventListeners() {
-                const viewButtons = document.querySelectorAll('#catalog .view-product-btn');
-                viewButtons.forEach(button => {
-                  button.addEventListener('click', async function(e) {
-                    e.stopPropagation();
-                    const productId = this.getAttribute('data-product-id');
-                    
-                    const article = await fetchModalArticleData(productId);
-                    if (article) {
-                      await updateModalUI(article);
-                      showModal();
-                    }
-                  });
+                // Ya no necesitamos esta función porque usamos onclick directo en el HTML
+              }
+
+              // Función para inicializar todo el sistema de modales
+              function initializeModalSystem() {
+                // Asegurar que el modal container existe
+                initializeModal();
+                
+                // Agregar event listeners para los botones
+                addViewButtonsEventListeners();
+                
+                // Agregar event listener para cerrar modal al hacer clic fuera
+                document.addEventListener('click', function(e) {
+                  const modal = document.getElementById('modal');
+                  if (modal && modal.style.display === 'flex' && e.target === modal) {
+                    hideModal();
+                  }
+                });
+                
+                // Agregar event listener para cerrar modal con ESC
+                document.addEventListener('keydown', function(e) {
+                  if (e.key === 'Escape') {
+                    hideModal();
+                  }
                 });
               }
 
+
+
+              // Función separada para manejar el click del botón
+              async function handleViewProductClick(e, productId) {
+                console.log('handleViewProductClick called with:', productId);
+                e.stopPropagation();
+                e.preventDefault();
+                
+                if (!productId) {
+                  console.log('No productId provided');
+                  return;
+                }
+                
+                // Convertir a string si es necesario
+                const id = String(productId);
+                console.log('Processing ID:', id);
+                
+                // Mostrar loading inmediatamente
+                console.log('Showing loading modal...');
+                showLoadingModal();
+                
+                try {
+                  console.log('Fetching article data...');
+                  const article = await fetchModalArticleData(id);
+                  console.log('Article data received:', article);
+                  if (article) {
+                    console.log('Updating modal UI...');
+                    await updateModalUI(article);
+                    console.log('Showing modal...');
+                    showModal();
+                  } else {
+                    console.log('No article data found');
+                    showErrorModal('No se pudo cargar la información del producto');
+                  }
+                } catch (error) {
+                  console.error('Error in handleViewProductClick:', error);
+                  showErrorModal('Error al cargar el producto: ' + error.message);
+                }
+              }
+
+              // Hacer las funciones globales para que funcionen en el HTML exportado
+              window.hideModal = hideModal;
+              window.showModal = showModal;
+              window.showLoadingModal = showLoadingModal;
+              window.showErrorModal = showErrorModal;
+              window.handleModalCombinacionClick = handleModalCombinacionClick;
+              window.handleModalOptionSelect = handleModalOptionSelect;
+              window.handleViewProductClick = handleViewProductClick;
+              
+
+
               // Verificar cambios cada 100ms
               setInterval(updateProductsIfNeeded, 100);
+              
+              // Inicializar el sistema de modales cuando el DOM esté listo
+              if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                  setTimeout(initializeModalSystem, 100);
+                });
+              } else {
+                setTimeout(initializeModalSystem, 100);
+              }
             })();
           </script>
         `;
@@ -1220,7 +1446,7 @@ export const generateSectionHTML = (section, allSections) => {
   const sectionHTML = elements.map(element => elementToHTML(element)).join('');
 
   return `
-    <section id="section" class="website-section" style="position: relative; min-height: 100vh; width: 100%; max-width: 1450px; margin: 0 auto; overflow: visible;">
+    <section id="section-${section.id}" class="website-section" style="position: relative; min-height: 100vh; width: 100%; max-width: 1450px; margin: 0 auto; overflow: visible;">
       ${sectionHTML}
     </section>
   `;
@@ -1243,12 +1469,26 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&family=Montserrat:wght@300;400;500;600;700&family=Lato:wght@300;400;700&family=Oswald:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&family=Nunito:wght@300;400;500;600;700&family=Raleway:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&family=Ubuntu:wght@300;400;500;700&family=Quicksand:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+                <style>
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+              
+              .loading-spinner {
+                width: 20px;
+                height: 20px;
+                border: 2px solid #f3f4f6;
+                border-top: 2px solid #e0241b;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+              }
+              
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
         
         body {
             font-family: 'Inter', system-ui, sans-serif;
@@ -1285,6 +1525,480 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
         
         .section-container {
             width: 100%;
+        }
+        
+        /* Modal Styles for Export */
+        #modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            display: none;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .product-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        
+        .product-modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        
+        .product-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e2e8f0;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+        
+        .product-modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+        }
+        
+        .product-modal-close {
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .product-modal-close:hover {
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+        
+        .product-modal-body {
+            display: flex;
+            max-height: calc(90vh - 80px);
+            overflow: hidden;
+        }
+        
+        .product-modal-image-section {
+            flex: 1;
+            max-width: 400px;
+            background: #f8fafc;
+            position: relative;
+        }
+        
+        .product-modal-image-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .product-modal-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: opacity 0.3s ease;
+        }
+        
+        .product-modal-info-section {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        
+        .product-header {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .product-code {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .product-name {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+            line-height: 1.2;
+        }
+        
+        .product-description {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 4px solid #941e1e;
+        }
+        
+        .product-description p {
+            font-size: 0.875rem;
+            color: #475569;
+            line-height: 1.6;
+            margin: 0;
+        }
+        
+        .product-details {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+        
+        .detail-item:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+        
+        .detail-item.price {
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+            border-color: #10b981;
+        }
+        
+        .detail-item.price:hover {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        }
+        
+        .detail-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .detail-value {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #0f172a;
+        }
+        
+        .detail-value.price-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #10b981;
+        }
+        
+        /* Combinaciones */
+        .combinaciones {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 1.5rem;
+        }
+        
+        .combinaciones h4 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 1.5rem 0;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .combinaciones__container {
+            margin-bottom: 1.25rem;
+        }
+        
+        .container__combination {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 8px;
+            padding: 14px 16px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #e2e8f0;
+            background: white;
+            position: relative;
+        }
+        
+        .container__combination:hover {
+            border-color: #941e1e;
+            background-color: #fef2f2;
+        }
+        
+        .container__combination.selected {
+            background: #941e1e;
+            color: white;
+            border-color: #941e1e;
+        }
+        
+        .container__combination.selected::after {
+            content: "✓";
+            position: absolute;
+            right: 16px;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        
+        .combination_options {
+            margin-top: 0.75rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            animation: slideDown 0.2s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.75rem;
+        }
+        
+        .option-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+            font-weight: 500;
+            text-align: center;
+            min-height: 40px;
+        }
+        
+        .option-item:hover {
+            border-color: #941e1e;
+            background: #fef2f2;
+        }
+        
+        .option-item.selected {
+            background: #941e1e;
+            color: white;
+            border-color: #941e1e;
+        }
+        
+        .option-item.selected::after {
+            content: "✓";
+            margin-left: 0.5rem;
+            font-weight: bold;
+        }
+        
+        .color-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .option-item:hover .color-swatch {
+            border-color: #941e1e;
+            transform: scale(1.1);
+        }
+        
+        .option-item.selected .color-swatch {
+            border-color: white;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+        }
+        
+        .option-text {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip-text {
+            visibility: hidden;
+            width: 120px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.75rem;
+        }
+        
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .search__sale-card {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background: #941e1e;
+            color: white;
+            padding: 0.875rem 1.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            margin-top: 1rem;
+            border: none;
+        }
+        
+        .search__sale-card:hover {
+            background: #7a1818;
+        }
+        
+        .search__sale-card.disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+        
+        .search__sale-card.disabled:hover {
+            background: #94a3b8;
+        }
+        
+        .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive Modal */
+        @media (max-width: 768px) {
+            .product-modal-content {
+                max-width: 95vw;
+                max-height: 95vh;
+            }
+            
+            .product-modal-body {
+                flex-direction: column;
+                max-height: calc(95vh - 80px);
+            }
+            
+            .product-modal-image-section {
+                max-width: 100%;
+                max-height: 300px;
+            }
+            
+            .product-modal-image-container {
+                padding: 1rem;
+            }
+            
+            .product-modal-info-section {
+                padding: 1.5rem;
+                gap: 1rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .product-modal-header {
+                padding: 1rem 1.5rem;
+            }
+            
+            .product-modal-title {
+                font-size: 1.125rem;
+            }
+            
+            .product-modal-info-section {
+                padding: 1rem;
+            }
+            
+            .product-name {
+                font-size: 1.25rem;
+            }
         }
         
         /* ProductCatalog CSS Styles - Diseño Minimalista */
@@ -1586,23 +2300,7 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
-        .productCatalog-products-grid .item::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(135deg, rgba(102, 126, 234, 0.02) 0%, rgba(118, 75, 162, 0.02) 100%);
-          opacity: 0;
-          transition: opacity 0.3s ease;
-          border-radius: inherit;
-        }
-
-        .productCatalog-products-grid .item:hover::before {
-          opacity: 1;
-        }
-
+    
         .productCatalog-products-grid .item:hover {
           transform: translateY(-4px) scale(1.02);
           box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
@@ -1852,6 +2550,129 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
             padding: 6px 12px;
           }
         }
+        
+        /* Carousel Styles */
+        .carousel-container {
+          position: relative;
+          overflow: hidden;
+          border-radius: 8px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .carousel-slides {
+          display: flex;
+          transition: transform 0.5s ease-in-out;
+          height: 100%;
+        }
+        
+        .carousel-slide {
+          min-width: 100%;
+          height: 100%;
+          flex-shrink: 0;
+          position: relative;
+        }
+        
+        .carousel-slide img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        
+        .carousel-caption {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: rgba(0, 0, 0, 0.7);
+          color: white;
+          padding: 20px;
+          text-align: center;
+          font-size: 16px;
+          font-weight: 500;
+        }
+        
+        .carousel-arrow {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          background: rgba(0, 0, 0, 0.5);
+          color: white;
+          border: none;
+          border-radius: 50%;
+          width: 40px;
+          height: 40px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          z-index: 10;
+          transition: all 0.3s ease;
+        }
+        
+        .carousel-arrow:hover {
+          background: rgba(0, 0, 0, 0.8);
+          transform: translateY(-50%) scale(1.1);
+        }
+        
+        .carousel-prev {
+          left: 10px;
+        }
+        
+        .carousel-next {
+          right: 10px;
+        }
+        
+        .carousel-dots {
+          position: absolute;
+          bottom: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          gap: 8px;
+          z-index: 10;
+        }
+        
+        .carousel-dot {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          border: none;
+          background: rgba(255, 255, 255, 0.5);
+          cursor: pointer;
+          transition: background 0.3s ease;
+        }
+        
+        .carousel-dot:hover {
+          background: rgba(255, 255, 255, 0.8);
+        }
+        
+        .carousel-dot.active {
+          background: white;
+        }
+        
+        /* Responsive Carousel */
+        @media (max-width: 768px) {
+          .carousel-arrow {
+            width: 35px;
+            height: 35px;
+            font-size: 16px;
+          }
+          
+          .carousel-dots {
+            bottom: 15px;
+          }
+          
+          .carousel-dot {
+            width: 10px;
+            height: 10px;
+          }
+          
+          .carousel-caption {
+            padding: 15px;
+            font-size: 14px;
+          }
+        }
     </style>
 </head>
 <body>
@@ -1868,14 +2689,26 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
             sections.forEach(section => section.classList.remove('active'));
             
             // Show target section
-            const targetSection = document.getElementById('section');
+            const targetSection = document.getElementById('section-' + sectionId);
             if (targetSection) {
                 targetSection.classList.add('active');
                 currentSection = sectionId;
                 
                 // Update URL without refresh
-                const sectionSlug = 'section';
-                history.pushState({sectionId}, '', '#' + sectionSlug);
+                history.pushState({sectionId}, '', '#' + sectionId);
+                
+                // Smooth scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                // Try to find section by slug or fallback to first section
+                const allSections = document.querySelectorAll('.website-section');
+                if (allSections.length > 0) {
+                    const firstSection = allSections[0];
+                    const firstSectionId = firstSection.id.replace('section-', '');
+                    navigateToSection(firstSectionId);
+                } else {
+                    console.warn('No sections found');
+                }
             }
         }
         
@@ -1883,12 +2716,31 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
         window.addEventListener('popstate', function(event) {
             if (event.state && event.state.sectionId) {
                 navigateToSection(event.state.sectionId);
+            } else {
+                // Handle direct URL access
+                const hash = window.location.hash.substring(1);
+                if (hash) {
+                    navigateToSection(hash);
+                } else {
+                    navigateToSection('home');
+                }
             }
         });
         
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            navigateToSection('home');
+            // Check if there's a hash in the URL
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                navigateToSection(hash);
+            } else {
+                // Find the home section or use the first section
+                const homeSection = document.querySelector('.website-section');
+                if (homeSection) {
+                    const homeSectionId = homeSection.id.replace('section-', '');
+                    navigateToSection(homeSectionId);
+                }
+            }
         });
     </script>
 </body>

@@ -7,7 +7,7 @@ class ApiService {
 
   // constructor(baseURL: string = 'http://hiplot.dyndns.org:92/') {
   // constructor(baseURL: string = 'http://127.0.0.1:8000') {//LOCALHOST LENOVO GEO
-  constructor(baseURL: string = 'http://hiplot.dyndns.org:84/api_dev') {
+  constructor(baseURL: string = 'http://hiplot.dyndns.org:84/api_dev_mode') {
     this.axiosInstance = axios.create({
       baseURL,
       headers: {

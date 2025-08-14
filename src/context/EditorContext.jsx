@@ -21,7 +21,7 @@ const initialState = {
   history: [],
   historyIndex: -1,
   showGuides: true,
-  snapLines: { vertical: [], horizontal: [] }, // Líneas de snap activas
+  snapLines: { vertical: [], horizontal: [] }, // Líneas de snap activadas
   canvasBackground: '#f8fafc', // Color de fondo del canvas
 };
 
@@ -83,6 +83,9 @@ const editorReducer = (state, action) => {
       };
 
     case 'ADD_ELEMENT':
+      console.log('=== INICIO ADD_ELEMENT reducer ===');
+      console.log('Elementos actuales:', state.sections[state.activeSectionId]?.elements?.length || 0);
+      
       const newElement = {
         id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         type: action.payload.type,
@@ -95,7 +98,7 @@ const editorReducer = (state, action) => {
       
       console.log('Agregando nuevo elemento:', newElement);
       
-      return {
+      const newState = {
         ...state,
         sections: {
           ...state.sections,
@@ -108,6 +111,11 @@ const editorReducer = (state, action) => {
         history: [...state.history.slice(0, state.historyIndex + 1), state],
         historyIndex: state.historyIndex + 1,
       };
+      
+      console.log('Elementos después de agregar:', newState.sections[state.activeSectionId]?.elements?.length || 0);
+      console.log('=== FIN ADD_ELEMENT reducer ===');
+      
+      return newState;
 
     case 'UPDATE_ELEMENT':
       // Permitir reordenar todo el array de elementos
@@ -424,11 +432,31 @@ export const EditorProvider = ({ children }) => {
   const elements = currentSection ? currentSection.elements : [];
 
   const addElement = (type, props = {}, children = [], styles = {}, position, size) => {
+    console.log('=== INICIO addElement ===');
     console.log('Agregando elemento:', { type, props, children, styles, position, size });
-    dispatch({
-      type: 'ADD_ELEMENT',
-      payload: { type, props, children, styles, position, size },
-    });
+    console.log('Estado actual antes de agregar:', state.sections[state.activeSectionId]?.elements?.length || 0);
+    
+    // Prevenir múltiples llamadas simultáneas
+    if (window._addElementProcessing) {
+      console.log('addElement ya está siendo procesado, ignorando llamada');
+      return;
+    }
+    
+    try {
+      window._addElementProcessing = true;
+      
+      dispatch({
+        type: 'ADD_ELEMENT',
+        payload: { type, props, children, styles, position, size },
+      });
+      
+      console.log('=== FIN addElement ===');
+    } finally {
+      // Reset del flag después de un tiempo
+      setTimeout(() => {
+        window._addElementProcessing = false;
+      }, 1000);
+    }
   };
 
   const updateElement = (id, updates) => {

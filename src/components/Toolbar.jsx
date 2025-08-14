@@ -36,8 +36,18 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useEditor } from '../context/EditorContext';
-import { downloadWebsite, previewWebsite } from '../utils/exportUtils.jsx';
-import { exportProjectSimple } from '../utils/projectStorage';
+import { downloadWebsite, previewWebsite, generateFullWebsite } from '../utils/exportUtils.jsx';
+import { 
+  exportProjectSimple, 
+  saveProject, 
+  createProjectData,
+  getStorageInfo,
+  canSaveProject,
+  autoCleanupOldProjects,
+  clearAllProjectsExcept,
+  backupProjectBeforeCleanup
+} from '../utils/projectStorage';
+import APIs from '../services/services/APIs.jsx';
 
 const ToolbarContainer = styled.div`
   height: 64px;
@@ -281,6 +291,8 @@ const Separator = styled.div`
 `;
 
 const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
+  const [notification, setNotification] = useState(null);
+  
   const {
     zoom,
     setZoom,
@@ -304,7 +316,7 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
   // Estados para dropdowns
   const [deviceDropdownOpen, setDeviceDropdownOpen] = useState(false);
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
-  const [cursoMode, setCursoMode] = useState(false);
+
   const [showColorPicker, setShowColorPicker] = useState(false);
 
   // Canvas sizes presets
@@ -338,9 +350,153 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
     setDeviceDropdownOpen(false);
   };
 
-  const handleSave = () => {
-    // Implementar guardar
-    console.log('Guardando proyecto...');
+  const showNotification = (message, type = 'success') => {
+    setNotification({ message, type, visible: true });
+    setTimeout(() => setNotification({ message: '', type: 'success', visible: false }), 5000);
+  };
+
+  const handleEmergencyCleanup = () => {
+    try {
+      const projectId = 'proyecto-actual-editor';
+      const result = clearAllProjectsExcept(projectId);
+      
+      if (result.success) {
+        showNotification('Limpieza de emergencia completada. Solo se mantiene el proyecto actual.', 'warning');
+      } else {
+        showNotification('Error en limpieza de emergencia: ' + result.error, 'error');
+      }
+    } catch (error) {
+      showNotification('Error en limpieza de emergencia: ' + error.message, 'error');
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      console.log('=== INICIO GUARDADO DESDE TOOLBAR ===');
+      
+      if (!sections || Object.keys(sections).length === 0) {
+        showNotification('No hay contenido en el editor para guardar. Primero crea un sitio web.', 'error');
+        return;
+      }
+
+      // Generar el HTML completo
+      const fullWebsiteHtml = generateFullWebsite(sections);
+      const fullWebsiteJson = JSON.stringify(sections);
+
+      // Preparar datos para la API
+      const apiData = {
+        nombre: 'Pagina MG',
+        descripcion: 'Proyecto guardado desde el editor web',
+        contenido: fullWebsiteJson, // Enviar el JSON
+        contenido_html: fullWebsiteHtml, // Enviar el HTML
+        fecha_creacion: new Date().toISOString(),
+        fecha_actualizacion: new Date().toISOString(),
+        estado: 'activo'
+      };
+
+      console.log('2. Datos preparados para API:', apiData);
+      
+      // Llamar a la API
+      try {
+        const apiResponse = await APIs.createPage(apiData);
+        showNotification('Página guardada exitosamente en el servidor', 'success');
+   
+        
+      } catch (apiError) {
+        console.error('5. Error al guardar en API:', apiError);
+        showNotification('Error al guardar en el servidor: ' + apiError.message, 'error');
+        return; // No continuar si falla el guardado en API
+      }
+
+      // Guardar localmente como respaldo
+      // try {
+      //   console.log('6. Guardando respaldo local...');
+        
+      //   // ID fijo para sobrescribir el mismo proyecto
+      //   const projectId = 'proyecto-actual-editor';
+        
+      //   // Crear datos del proyecto para guardar (sobrescribiendo)
+      //   const projectData = createProjectData(sections, {
+      //     name: 'Mi Proyecto Web',
+      //     description: 'Proyecto guardado desde el editor',
+      //     tags: ['editor', 'guardado'],
+      //     id: projectId,
+      //     createdAt: new Date().toISOString(),
+      //     updatedAt: new Date().toISOString()
+      //   });
+
+      //   console.log('7. Datos del proyecto preparados:', projectData);
+        
+      //   // Verificar si se puede guardar el proyecto
+      //   const saveCheck = canSaveProject(projectData);
+      //   console.log('8. Verificación de almacenamiento:', saveCheck);
+        
+      //   if (!saveCheck.canSave) {
+      //     console.log('9. Espacio insuficiente, intentando limpiar automáticamente...');
+          
+      //     // Intentar limpieza automática
+      //     const cleanupResult = autoCleanupOldProjects();
+      //     console.log('10. Resultado de limpieza automática:', cleanupResult);
+          
+      //     // Verificar nuevamente después de la limpieza
+      //     const newSaveCheck = canSaveProject(projectData);
+      //     console.log('11. Nueva verificación después de limpieza:', newSaveCheck);
+          
+      //     if (!newSaveCheck.canSave) {
+      //       // Crear respaldo antes de limpiar todo
+      //       console.log('12. Creando respaldo antes de limpieza completa...');
+      //       const backupResult = backupProjectBeforeCleanup(projectData);
+      //       console.log('13. Resultado del respaldo:', backupResult);
+            
+      //       if (backupResult.success) {
+      //         showNotification(`Respaldo creado: ${backupResult.backupFile}. Limpiando almacenamiento...`, 'warning');
+      //       }
+            
+      //       // Limpiar todos los proyectos excepto el actual
+      //       const clearResult = clearAllProjectsExcept(projectId);
+      //       console.log('14. Resultado de limpieza completa:', clearResult);
+            
+      //       if (!clearResult.success) {
+      //         throw new Error('No se pudo limpiar el almacenamiento. Intenta exportar tu trabajo y limpiar manualmente.');
+      //       }
+      //     }
+      //   }
+        
+      //   // Guardar el proyecto localmente
+      //   const result = await saveProject(projectData);
+      //   console.log('15. Resultado del guardado local:', result);
+        
+      //   if (result.success) {
+      //     // Mostrar información del almacenamiento
+      //     const storageInfo = getStorageInfo();
+      //     const message = `Respaldo local guardado. Almacenamiento: ${Math.round(storageInfo.usagePercentage)}% usado`;
+      //     showNotification(message);
+      //     console.log('16. Respaldo local guardado correctamente');
+      //   } else {
+      //     showNotification('Error al guardar el respaldo local: ' + result.error, 'warning');
+      //     console.error('16. Error al guardar localmente:', result.error);
+      //   }
+        
+      // } catch (localError) {
+      //   console.error('17. Error al guardar localmente:', localError);
+      //   showNotification('Página guardada en servidor, pero error al guardar respaldo local: ' + localError.message, 'warning');
+      // }
+      
+
+      
+    } catch (error) {
+      console.error('=== ERROR EN GUARDADO DESDE TOOLBAR ===');
+      console.error('Error completo:', error);
+      
+      // Proporcionar sugerencias específicas según el tipo de error
+      let errorMessage = error.message;
+      if (error.name === 'QuotaExceededError' || error.code === 22) {
+        errorMessage = 'El almacenamiento está lleno. Intenta: 1) Exportar tu trabajo actual, 2) Limpiar el caché del navegador, 3) Usar un navegador diferente.';
+      }
+      
+      showNotification('Error al guardar el proyecto: ' + errorMessage, 'error');
+      console.log('=== FIN ERROR ===');
+    }
   };
 
   const handleExport = () => {
@@ -383,7 +539,7 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
     previewWebsite(sections);
   };
 
-  const selectedElement = elements.find(el => el.id === selectedElementId);
+  const selectedElement = elements && elements.find ? elements.find(el => el.id === selectedElementId) : null;
 
   // Cerrar dropdowns cuando se hace clic fuera
   React.useEffect(() => {
@@ -498,7 +654,7 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
           <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500' }}>W:</span>
           <ZoomInput
             type="number"
-            value={1450}
+            value={canvasWidth}
             disabled
             style={{ width: '60px', background: '#f3f4f6', color: '#9ca3af', cursor: 'not-allowed' }}
           />
@@ -514,28 +670,9 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
         </div>
       </ToolbarSection>
 
-      {/* Modo curso */}
-      <ToolbarSection>
-        <ModeToggle
-          $active={cursoMode}
-          onClick={() => setCursoMode(!cursoMode)}
-          title="Modo Curso - Oculta herramientas avanzadas"
-        >
-          {cursoMode ? <Eye size={16} /> : <EyeOff size={16} />}
-          Modo Curso
-        </ModeToggle>
-      </ToolbarSection>
 
-      {/* Líneas de guía */}
-      <ToolbarSection>
-        <ToolbarButton
-          onClick={() => setShowGuides(!showGuides)}
-          $active={showGuides}
-          title="Mostrar/Ocultar líneas de guía"
-        >
-          <Grid3X3 size={18} />
-        </ToolbarButton>
-      </ToolbarSection>
+
+
 
       {/* Elemento seleccionado */}
       {selectedElement && (
@@ -559,17 +696,7 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
         </ToolbarSection>
       )}
 
-      {/* Indicador de tamaño del canvas */}
-      <ToolbarSection>
-        <span style={{
-          fontSize: '12px',
-          color: '#6b7280',
-          fontWeight: '500',
-          fontFamily: 'Inter, system-ui, sans-serif'
-        }}>
-          Canvas: {canvasWidth}×{canvasHeight}
-        </span>
-      </ToolbarSection>
+
 
       {/* Spacer */}
       <div style={{ flex: 1 }} />
@@ -624,6 +751,27 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
                   Archivo .json
                 </span>
               </DropdownItem>
+              <DropdownItem onClick={() => {
+                const result = autoCleanupOldProjects();
+                showNotification(result.message, result.success ? 'success' : 'error');
+                setExportDropdownOpen(false);
+              }}>
+                <Trash2 size={16} />
+                Limpiar Proyectos Antiguos
+                <span style={{ fontSize: '12px', opacity: 0.7 }}>
+                  Liberar espacio automáticamente
+                </span>
+              </DropdownItem>
+              <DropdownItem onClick={() => {
+                handleEmergencyCleanup();
+                setExportDropdownOpen(false);
+              }}>
+                <Trash2 size={16} />
+                Limpieza de Emergencia
+                <span style={{ fontSize: '12px', opacity: 0.7 }}>
+                  Eliminar todos excepto el actual
+                </span>
+              </DropdownItem>
             </DropdownMenu>
           )}
         </div>
@@ -632,6 +780,22 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
           <Save size={16} />
           Guardar
         </SaveButton>
+        
+        {/* Botón de gestión de almacenamiento */}
+        <ToolbarButton
+          onClick={() => {
+            const storageInfo = getStorageInfo();
+            const message = `Almacenamiento: ${Math.round(storageInfo.usagePercentage)}% usado (${(storageInfo.currentSize / 1024 / 1024).toFixed(1)}MB / ${(storageInfo.maxSize / 1024 / 1024).toFixed(1)}MB)`;
+            showNotification(message, storageInfo.isNearLimit ? 'warning' : 'info');
+          }}
+          title="Ver información de almacenamiento"
+          style={{ 
+            backgroundColor: getStorageInfo().isNearLimit ? '#fef3c7' : 'transparent',
+            borderColor: getStorageInfo().isNearLimit ? '#f59e0b' : '#d1d5db'
+          }}
+        >
+          <Settings size={16} />
+        </ToolbarButton>
         <ToolbarButton
           title="Color de fondo del canvas"
           onClick={() => setShowColorPicker(v => !v)}
@@ -650,6 +814,42 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
           </div>
         )}
       </ToolbarSection>
+      
+      {/* Notificación */}
+      {notification && (
+        <div style={{
+          position: 'fixed',
+          top: '80px',
+          right: '20px',
+          padding: '12px 20px',
+          borderRadius: '8px',
+          color: 'white',
+          fontWeight: '500',
+          zIndex: 1000,
+          background: notification.type === 'error' ? '#ef4444' : '#10b981',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          transform: 'translateX(0)',
+          transition: 'transform 0.3s ease',
+          animation: 'slideInRight 0.3s ease'
+        }}>
+          {notification.message}
+        </div>
+      )}
+      
+      <style>
+        {`
+          @keyframes slideInRight {
+            from {
+              transform: translateX(100%);
+              opacity: 0;
+            }
+            to {
+              transform: translateX(0);
+              opacity: 1;
+            }
+          }
+        `}
+      </style>
     </ToolbarContainer>
   );
 };

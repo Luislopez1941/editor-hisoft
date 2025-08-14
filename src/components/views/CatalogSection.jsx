@@ -473,7 +473,12 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
   };
 
   const BuscarArticuloPorCombinacion = async () => {
-    if (!areAllCombinationsSelected()) {
+    // Cambiar la lógica: ejecutar con al menos una selección, no todas
+    const hasAnySelection = modalOpciones.some((combinacion) => 
+      combinacion.OpcionSelected && combinacion.OpcionSelected !== ""
+    );
+    
+    if (!hasAnySelection) {
       return;
     }
 

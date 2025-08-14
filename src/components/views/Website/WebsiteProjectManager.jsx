@@ -34,11 +34,13 @@ import {
 import { useEditor } from '../../../context/EditorContext';
 import { previewWebsite } from '../../../utils/exportUtils.jsx';
 import WebsiteSelectionModal from './WebsiteSelectionModal';
+import APIs from '../../../services/services/APIs';
 import './WebsiteProjectManager.css';
 
 const WebsiteProjectManager = ({ onSwitchToEditor }) => {
   const { sections } = useEditor();
   const [projects, setProjects] = useState([]);
+  const [serverPages, setServerPages] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -46,16 +48,123 @@ const WebsiteProjectManager = ({ onSwitchToEditor }) => {
   const [saveFormData, setSaveFormData] = useState({ name: '', description: '', tags: '' });
   const [currentProject, setCurrentProject] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingServerPages, setLoadingServerPages] = useState(false);
   const [exportingProjects, setExportingProjects] = useState(new Set());
   const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
     loadProjects();
+    loadServerPages();
   }, []);
 
   const loadProjects = () => {
     const savedProjects = getProjects();
     setProjects(savedProjects);
+  };
+
+  const loadServerPages = async () => {
+    setLoadingServerPages(true);
+    try {
+      // Obtener todas las páginas del servidor
+      const response = await APIs.getPage('Pagina MG');
+      
+      if (response && response.data) {
+        // Parsear el JSON que puede venir doble serializado
+        let sections = {};
+        try {
+          if (response.data.json_original) {
+            // Intentar parsear el JSON que puede estar doble serializado
+            let jsonData = response.data.json_original;
+            if (typeof jsonData === 'string') {
+              jsonData = JSON.parse(jsonData);
+              // Si aún es string, parsearlo una vez más
+              if (typeof jsonData === 'string') {
+                jsonData = JSON.parse(jsonData);
+              }
+            }
+            sections = jsonData;
+          } else if (response.data.contenido) {
+            let jsonData = response.data.contenido;
+            if (typeof jsonData === 'string') {
+              jsonData = JSON.parse(jsonData);
+              if (typeof jsonData === 'string') {
+                jsonData = JSON.parse(jsonData);
+              }
+            }
+            sections = jsonData;
+          }
+        } catch (error) {
+          console.error('Error parsing JSON:', error);
+          sections = {};
+        }
+
+        const pagesData = [{
+          id: `server-${response.data.nombre}`,
+          name: response.data.nombre,
+          description: response.data.descripcion || 'Página del servidor',
+          sections: sections,
+          html_compilado: response.data.html_compilado || '',
+          createdAt: response.data.fecha_creacion,
+          updatedAt: response.data.fecha_actualizacion,
+          tags: ['servidor'],
+          isServerPage: true
+        }];
+        
+        setServerPages(pagesData);
+        console.log('Páginas del servidor cargadas:', pagesData);
+      } else if (response && response.nombre) {
+        // Si la respuesta viene directamente (sin .data)
+        let sections = {};
+        try {
+          if (response.json_original) {
+            let jsonData = response.json_original;
+            if (typeof jsonData === 'string') {
+              jsonData = JSON.parse(jsonData);
+              if (typeof jsonData === 'string') {
+                jsonData = JSON.parse(jsonData);
+              }
+            }
+            sections = jsonData;
+          } else if (response.contenido) {
+            let jsonData = response.contenido;
+            if (typeof jsonData === 'string') {
+              jsonData = JSON.parse(jsonData);
+              if (typeof jsonData === 'string') {
+                jsonData = JSON.parse(jsonData);
+              }
+            }
+            sections = jsonData;
+          }
+        } catch (error) {
+          console.error('Error parsing JSON:', error);
+          sections = {};
+        }
+
+        const pagesData = [{
+          id: `server-${response.nombre}`,
+          name: response.nombre,
+          description: response.descripcion || 'Página del servidor',
+          sections: sections,
+          html_compilado: response.html_compilado || '',
+          createdAt: response.fecha_creacion,
+          updatedAt: response.fecha_actualizacion,
+          tags: ['servidor'],
+          isServerPage: true
+        }];
+        
+        setServerPages(pagesData);
+        console.log('Páginas del servidor cargadas:', pagesData);
+      } else {
+        setServerPages([]);
+        console.log('No se encontraron páginas en el servidor');
+      }
+    } catch (error) {
+      console.error('Error al cargar páginas del servidor:', error);
+      setMessage({ type: 'error', text: 'Error al cargar páginas del servidor: ' + error.message });
+      setServerPages([]);
+    } finally {
+      setLoadingServerPages(false);
+    }
   };
 
   const handleWebsiteSelection = (type, template) => {
@@ -229,23 +338,23 @@ const WebsiteProjectManager = ({ onSwitchToEditor }) => {
         </div>
       </div>
 
-             {/* Stats */}
-       <div className="project-stats">
-         <div className="stat-item">
-           <FolderOpen size={16} />
-           <span>{stats.total} proyectos</span>
-         </div>
-         <div className="stat-item">
-           <Clock size={16} />
-           <span>{stats.recentlyUpdated} recientes</span>
-         </div>
-         {currentProject && (
-           <div className="stat-item" style={{ background: '#10b981', color: 'white', padding: '4px 12px', borderRadius: '6px' }}>
-             <Edit3 size={16} />
-             <span>Editando: {currentProject.name}</span>
-           </div>
-         )}
-       </div>
+      {/* Stats */}
+      <div className="project-stats">
+        <div className="stat-item">
+          <FolderOpen size={16} />
+          <span>{stats.total} proyectos</span>
+        </div>
+        <div className="stat-item">
+          <Clock size={16} />
+          <span>{stats.recentlyUpdated} recientes</span>
+        </div>
+        {currentProject && (
+          <div className="stat-item" style={{ background: '#10b981', color: 'white', padding: '4px 12px', borderRadius: '6px' }}>
+            <Edit3 size={16} />
+            <span>Editando: {currentProject.name}</span>
+          </div>
+        )}
+      </div>
 
       {/* Search */}
       <div className="search-section">
@@ -260,60 +369,60 @@ const WebsiteProjectManager = ({ onSwitchToEditor }) => {
         </div>
       </div>
 
-             {/* Actions */}
-       <div className="project-actions">
-         <button 
-           className={`action-btn ${sections && Object.keys(sections).length > 0 ? 'primary' : 'disabled'}`}
-           onClick={() => {
-             if (sections && Object.keys(sections).length > 0) {
-               setCurrentProject(null);
-               setSaveFormData({ name: '', description: '', tags: '' });
-               setShowSaveModal(true);
-             } else {
-               setMessage({ type: 'error', text: 'No hay contenido en el editor para guardar. Primero crea un sitio web.' });
-             }
-           }}
-           disabled={!sections || Object.keys(sections).length === 0}
-           title={!sections || Object.keys(sections).length === 0 ? 'No hay contenido en el editor para guardar' : 'Guardar proyecto actual'}
-         >
-           <Save size={16} />
-           Guardar Proyecto
-         </button>
-         
-         {/* Botón para actualizar proyecto actual */}
-         {currentProject && (
-           <button 
-             className="action-btn"
-             onClick={() => {
-               if (sections && Object.keys(sections).length > 0) {
-                 // Actualizar el proyecto actual sin mostrar modal
-                 const updatedProject = {
-                   ...currentProject,
-                   sections: sections,
-                   updatedAt: new Date().toISOString()
-                 };
-                 
-                 saveProject(updatedProject).then(result => {
-                   if (result.success) {
-                     setMessage({ type: 'success', text: 'Proyecto actualizado exitosamente' });
-                     setCurrentProject(result.project);
-                     loadProjects();
-                   } else {
-                     setMessage({ type: 'error', text: 'Error al actualizar: ' + result.error });
-                   }
-                 });
-               } else {
-                 setMessage({ type: 'error', text: 'No hay contenido para actualizar' });
-               }
-             }}
-             disabled={!sections || Object.keys(sections).length === 0}
-             title="Actualizar el proyecto actual con los cambios del editor"
-             style={{ background: '#10b981', color: 'white', borderColor: '#10b981' }}
-           >
-             <Save size={16} />
-             Actualizar Proyecto
-           </button>
-         )}
+      {/* Actions */}
+      <div className="project-actions">
+        <button 
+          className={`action-btn ${sections && Object.keys(sections).length > 0 ? 'primary' : 'disabled'}`}
+          onClick={() => {
+            if (sections && Object.keys(sections).length > 0) {
+              setCurrentProject(null);
+              setSaveFormData({ name: '', description: '', tags: '' });
+              setShowSaveModal(true);
+            } else {
+              setMessage({ type: 'error', text: 'No hay contenido en el editor para guardar. Primero crea un sitio web.' });
+            }
+          }}
+          disabled={!sections || Object.keys(sections).length === 0}
+          title={!sections || Object.keys(sections).length === 0 ? 'No hay contenido en el editor para guardar' : 'Guardar proyecto actual'}
+        >
+          <Save size={16} />
+          Guardar Proyecto
+        </button>
+        
+        {/* Botón para actualizar proyecto actual */}
+        {currentProject && (
+          <button 
+            className="action-btn"
+            onClick={() => {
+              if (sections && Object.keys(sections).length > 0) {
+                // Actualizar el proyecto actual sin mostrar modal
+                const updatedProject = {
+                  ...currentProject,
+                  sections: sections,
+                  updatedAt: new Date().toISOString()
+                };
+                
+                saveProject(updatedProject).then(result => {
+                  if (result.success) {
+                    setMessage({ type: 'success', text: 'Proyecto actualizado exitosamente' });
+                    setCurrentProject(result.project);
+                    loadProjects();
+                  } else {
+                    setMessage({ type: 'error', text: 'Error al actualizar: ' + result.error });
+                  }
+                });
+              } else {
+                setMessage({ type: 'error', text: 'No hay contenido para actualizar' });
+              }
+            }}
+            disabled={!sections || Object.keys(sections).length === 0}
+            title="Actualizar el proyecto actual con los cambios del editor"
+            style={{ background: '#10b981', color: 'white', borderColor: '#10b981' }}
+          >
+            <Save size={16} />
+            Actualizar Proyecto
+          </button>
+        )}
         
         <button 
           className="action-btn"
@@ -352,88 +461,158 @@ const WebsiteProjectManager = ({ onSwitchToEditor }) => {
           <Upload size={16} />
           Importar
         </button>
+        
+        <button 
+          className="action-btn"
+          onClick={loadServerPages}
+          disabled={loadingServerPages}
+          title="Recargar páginas del servidor"
+        >
+          <FolderOpen size={16} />
+          {loadingServerPages ? 'Cargando...' : 'Recargar Servidor'}
+        </button>
       </div>
 
       {/* Projects List */}
       <div className="projects-list">
-        {filteredProjects.length === 0 ? (
-          <div className="empty-state">
-            <FolderOpen size={48} />
-            <h3>No hay proyectos</h3>
-            <p>Guarda tu primer proyecto para comenzar</p>
-          </div>
-        ) : (
-          filteredProjects.map(project => (
-            <div key={project.id} className="project-card">
-              <div className="project-info">
-                <div className="project-thumbnail">
-                  {project.thumbnail ? (
-                    <img src={project.thumbnail} alt={project.name} />
-                  ) : (
-                    <div className="thumbnail-placeholder">
-                      <FolderOpen size={24} />
+        {/* Páginas del Servidor */}
+        {serverPages.length > 0 && (
+          <div className="server-pages-section">
+            <h3>Páginas del Servidor</h3>
+            <div className="server-pages-grid">
+              {serverPages.map(page => (
+                <div key={page.id} className="project-card server-page">
+                  <div className="project-info">
+                    <div className="project-thumbnail">
+                      <div className="thumbnail-placeholder server">
+                        <FolderOpen size={24} />
+                      </div>
                     </div>
-                  )}
+                    <div className="project-details">
+                      <h4>{page.name}</h4>
+                      <p>{page.description || 'Página del servidor'}</p>
+                      <div className="project-meta">
+                        <span className="date">
+                          {formatDate(page.updatedAt)}
+                        </span>
+                        <div className="tags">
+                          <span className="tag server">Servidor</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="project-actions">
+                    <button 
+                      className="action-icon"
+                      onClick={() => handleLoadProject(page)}
+                      title="Cargar página del servidor"
+                    >
+                      <Edit3 size={16} />
+                    </button>
+                    <button 
+                      className="action-icon"
+                      onClick={() => handlePreviewProject(page)}
+                      title="Vista previa"
+                    >
+                      <Eye size={16} />
+                    </button>
+                    <button 
+                      className="action-icon"
+                      onClick={() => handleExportProject(page)}
+                      title="Exportar"
+                    >
+                      <Download size={16} />
+                    </button>
+                  </div>
                 </div>
-                <div className="project-details">
-                  <h4>{project.name}</h4>
-                  <p>{project.description || 'Sin descripción'}</p>
-                  <div className="project-meta">
-                    <span className="date">
-                      {formatDate(project.updatedAt)}
-                    </span>
-                    {project.tags.length > 0 && (
-                      <div className="tags">
-                        {project.tags.slice(0, 2).map(tag => (
-                          <span key={tag} className="tag">{tag}</span>
-                        ))}
-                        {project.tags.length > 2 && (
-                          <span className="tag-more">+{project.tags.length - 2}</span>
-                        )}
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Proyectos Locales */}
+        <div className="local-projects-section">
+          <h3>Proyectos Locales</h3>
+          {filteredProjects.length === 0 ? (
+            <div className="empty-state">
+              <FolderOpen size={48} />
+              <h3>No hay proyectos locales</h3>
+              <p>Guarda tu primer proyecto para comenzar</p>
+            </div>
+          ) : (
+            filteredProjects.map(project => (
+              <div key={project.id} className="project-card">
+                <div className="project-info">
+                  <div className="project-thumbnail">
+                    {project.thumbnail ? (
+                      <img src={project.thumbnail} alt={project.name} />
+                    ) : (
+                      <div className="thumbnail-placeholder">
+                        <FolderOpen size={24} />
                       </div>
                     )}
                   </div>
+                  <div className="project-details">
+                    <h4>{project.name}</h4>
+                    <p>{project.description || 'Sin descripción'}</p>
+                    <div className="project-meta">
+                      <span className="date">
+                        {formatDate(project.updatedAt)}
+                      </span>
+                      {project.tags.length > 0 && (
+                        <div className="tags">
+                          {project.tags.slice(0, 2).map(tag => (
+                            <span key={tag} className="tag">{tag}</span>
+                          ))}
+                          {project.tags.length > 2 && (
+                            <span className="tag-more">+{project.tags.length - 2}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="project-actions">
+                  <button 
+                    className="action-icon"
+                    onClick={() => handleLoadProject(project)}
+                    title="Editar proyecto"
+                  >
+                    <Edit3 size={16} />
+                  </button>
+                  <button 
+                    className="action-icon"
+                    onClick={() => handlePreviewProject(project)}
+                    title="Vista previa"
+                  >
+                    <Eye size={16} />
+                  </button>
+                  <button 
+                    className={`action-icon ${exportingProjects.has(project.id) ? 'loading' : ''}`}
+                    onClick={() => handleExportProject(project)}
+                    title={exportingProjects.has(project.id) ? 'Exportando...' : 'Exportar'}
+                    disabled={loading || exportingProjects.has(project.id)}
+                  >
+                    {exportingProjects.has(project.id) ? (
+                      <div className="loading-spinner" />
+                    ) : (
+                      <Download size={16} />
+                    )}
+                  </button>
+                  <button 
+                    className="action-icon danger"
+                    onClick={() => handleDeleteProject(project.id)}
+                    title="Eliminar"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
-              
-              <div className="project-actions">
-                <button 
-                  className="action-icon"
-                  onClick={() => handleLoadProject(project)}
-                  title="Editar proyecto"
-                >
-                  <Edit3 size={16} />
-                </button>
-                <button 
-                  className="action-icon"
-                  onClick={() => handlePreviewProject(project)}
-                  title="Vista previa"
-                >
-                  <Eye size={16} />
-                </button>
-                <button 
-                  className={`action-icon ${exportingProjects.has(project.id) ? 'loading' : ''}`}
-                  onClick={() => handleExportProject(project)}
-                  title={exportingProjects.has(project.id) ? 'Exportando...' : 'Exportar'}
-                  disabled={loading || exportingProjects.has(project.id)}
-                >
-                  {exportingProjects.has(project.id) ? (
-                    <div className="loading-spinner" />
-                  ) : (
-                    <Download size={16} />
-                  )}
-                </button>
-                <button 
-                  className="action-icon danger"
-                  onClick={() => handleDeleteProject(project.id)}
-                  title="Eliminar"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
 
       {/* Save Modal */}

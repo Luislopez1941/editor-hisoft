@@ -501,7 +501,7 @@ const Sidebar = () => {
   // Header category eliminado - ahora se trata como un container normal
   const allCategories = [...elementCategories];
 
-  // Secciones predefinidas
+  // Secciones predefinidas - Solo las 3 secciones solicitadas
   const predefinedSections = [
     {
       id: 'catalog',
@@ -510,6 +510,7 @@ const Sidebar = () => {
       tags: ['E-commerce', 'Productos'],
       background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
       preview: '🛍️',
+      isReactComponent: true,
       elements: [
         {
           type: 'catalog-section',
@@ -525,150 +526,183 @@ const Sidebar = () => {
       ]
     },
     {
-      id: 'hero',
-      name: 'Hero Section',
-      description: 'Sección principal con título, subtítulo y botón de acción',
-      tags: ['Landing', 'Principal'],
+      id: 'carousel',
+      name: 'Carrusel de Imágenes',
+      description: 'Carrusel interactivo con autoplay, navegación y indicadores',
+      tags: ['Galería', 'Imágenes'],
+      background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+      preview: '🎠',
+      isReactComponent: true,
+      elements: [
+        {
+          type: 'carousel',
+          props: {
+            images: [
+              'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&h=400&fit=crop',
+              'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=400&fit=crop',
+              'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&h=400&fit=crop'
+            ],
+            autoPlay: true,
+            showDots: true,
+            showArrows: true,
+            interval: 3000
+          },
+          styles: {
+            width: '100%',
+            height: '400px'
+          }
+        }
+      ]
+    },
+    {
+      id: 'cards-carousel',
+      name: 'Carrusel de Cards',
+      description: 'Carrusel inteligente que se adapta según la cantidad de cards (4 o menos = grid, 6+ = carrusel)',
+      tags: ['Cards', 'Carrusel', 'Responsive'],
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      preview: '🚀',
+      preview: '🎠',
+      isReactComponent: true,
       elements: [
         {
-          type: 'section',
-          styles: {
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            padding: '100px 0',
-            color: '#ffffff',
-            textAlign: 'center'
-          },
-          children: [
-            {
-              type: 'heading',
-              props: { content: 'Bienvenido a Nuestro Sitio', level: 1 },
-              styles: { fontSize: '48px', fontWeight: '700', marginBottom: '20px' },
-              position: { x: 50, y: 50 },
-              size: { width: '600px', height: 'auto' }
-            },
-            {
-              type: 'text',
-              props: { content: 'Descubre las mejores soluciones para tu negocio' },
-              styles: { fontSize: '20px', marginBottom: '30px', opacity: '0.9' },
-              position: { x: 50, y: 150 },
-              size: { width: '500px', height: 'auto' }
-            },
-            {
-              type: 'button',
-              props: { text: 'Comenzar Ahora', variant: 'primary' },
-              styles: { padding: '15px 30px', fontSize: '18px' },
-              position: { x: 50, y: 250 },
-              size: { width: 'auto', height: 'auto' }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'features',
-      name: 'Características',
-      description: 'Sección con tres columnas de características',
-      tags: ['Servicios', 'Grid'],
-      background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-      preview: '⭐',
-      elements: [
-        {
-          type: 'section',
-          styles: {
-            background: '#ffffff',
-            padding: '80px 0',
-            textAlign: 'center'
-          },
-          children: [
-            {
-              type: 'heading',
-              props: { content: 'Nuestras Características', level: 2 },
-              styles: { fontSize: '36px', marginBottom: '50px', color: '#1e293b' },
-              position: { x: 50, y: 50 },
-              size: { width: '500px', height: 'auto' }
-            },
-            {
-              type: 'card',
-              props: {
-                title: 'Rápido',
-                content: 'Optimizado para velocidad y rendimiento',
-                image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=300&h=200&fit=crop'
+          type: 'cardsCarousel',
+          props: {
+            cards: [
+              {
+                props: {
+                  title: 'Green plants are going to Extinct about 500 times faster than they should, Study finds',
+                  content: 'If you are the sort of person who just can not keep a plant alive, you are not alone according to a new study published June 10 in the journal Nature...',
+                  image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400&h=300&fit=crop',
+                  category: 'Science',
+                  buttonText: 'Leer más',
+                  buttonUrl: 'servicios',
+                  buttonColor: '#3b82f6',
+                  categoryColor: '#10b981',
+                  showButton: true
+                },
+                styles: {
+                  background: '#ffffff',
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                  overflow: 'hidden',
+                  transition: 'all 0.3s ease',
+                  border: '1px solid #f1f5f9'
+                }
               },
-              position: { x: 50, y: 150 },
-              size: { width: '300px', height: '250px' }
-            },
-            {
-              type: 'card',
-              props: {
-                title: 'Seguro',
-                content: 'Máxima seguridad para tus datos',
-                image: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=300&h=200&fit=crop'
+              {
+                props: {
+                  title: 'How to make the perfect morning coffee, according to the Science',
+                  content: 'Discover the scientific approach to brewing the perfect cup of coffee every morning.',
+                  image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&h=300&fit=crop',
+                  category: 'Lifestyle',
+                  buttonText: 'Ver receta',
+                  buttonUrl: 'productos',
+                  buttonColor: '#f59e0b',
+                  categoryColor: '#8b5cf6',
+                  showButton: true
+                },
+                styles: {
+                  background: '#ffffff',
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                  overflow: 'hidden',
+                  transition: 'all 0.3s ease',
+                  border: '1px solid #f1f5f9'
+                }
               },
-              position: { x: 400, y: 150 },
-              size: { width: '300px', height: '250px' }
-            },
-            {
-              type: 'card',
-              props: {
-                title: 'Fácil',
-                content: 'Interfaz intuitiva y fácil de usar',
-                image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=300&h=200&fit=crop'
+              {
+                props: {
+                  title: 'The Future of Artificial Intelligence in Healthcare',
+                  content: 'Exploring how AI is revolutionizing medical diagnosis and patient care in modern healthcare systems.',
+                  image: 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=400&h=300&fit=crop',
+                  category: 'Technology',
+                  buttonText: 'Saber más',
+                  buttonUrl: 'nosotros',
+                  buttonColor: '#06b6d4',
+                  categoryColor: '#ef4444',
+                  showButton: true
+                },
+                styles: {
+                  background: '#ffffff',
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                  overflow: 'hidden',
+                  transition: 'all 0.3s ease',
+                  border: '1px solid #f1f5f9'
+                }
               },
-              position: { x: 750, y: 150 },
-              size: { width: '300px', height: '250px' }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'contact',
-      name: 'Contacto',
-      description: 'Sección de contacto con información y formulario',
-      tags: ['Contacto', 'Footer'],
-      background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-      preview: '📞',
-      elements: [
-        {
-          type: 'section',
-          styles: {
-            background: 'linear-gradient(135deg, #1e293b, #334155)',
-            padding: '80px 0',
-            color: '#ffffff',
-            textAlign: 'center'
+              {
+                props: {
+                  title: 'Sustainable Living: 10 Easy Ways to Reduce Your Carbon Footprint',
+                  content: 'Simple and practical tips to live more sustainably and help protect our environment for future generations.',
+                  image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=300&fit=crop',
+                  category: 'Environment',
+                  buttonText: 'Ver consejos',
+                  buttonUrl: 'blog',
+                  buttonColor: '#10b981',
+                  categoryColor: '#f97316',
+                  showButton: true
+                },
+                styles: {
+                  background: '#ffffff',
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                  overflow: 'hidden',
+                  transition: 'all 0.3s ease',
+                  border: '1px solid #f1f5f9'
+                }
+              },
+              {
+                props: {
+                  title: 'Breaking: Major Tech Company Announces Revolutionary AI Breakthrough',
+                  content: 'The company revealed its latest artificial intelligence system that promises to transform how we interact with technology.',
+                  image: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=300&fit=crop',
+                  category: 'Technology',
+                  buttonText: 'Leer noticia',
+                  buttonUrl: 'galeria',
+                  buttonColor: '#8b5cf6',
+                  categoryColor: '#06b6d4',
+                  showButton: true
+                },
+                styles: {
+                  background: '#ffffff',
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                  overflow: 'hidden',
+                  transition: 'all 0.3s ease',
+                  border: '1px solid #f1f5f9'
+                }
+              },
+              {
+                props: {
+                  title: 'The Psychology of Color in Web Design',
+                  content: 'Understanding how different colors affect user behavior and perception in digital interfaces.',
+                  image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop',
+                  category: 'Design',
+                  buttonText: 'Ver guía',
+                  buttonUrl: 'contacto',
+                  buttonColor: '#f43f5e',
+                  categoryColor: '#84cc16',
+                  showButton: true
+                },
+                styles: {
+                  background: '#ffffff',
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                  overflow: 'hidden',
+                  transition: 'all 0.3s ease',
+                  border: '1px solid #f1f5f9'
+                }
+              }
+            ],
+            autoPlay: true,
+            interval: 5000,
+            showDots: true,
+            showArrows: true
           },
-          children: [
-            {
-              type: 'heading',
-              props: { content: 'Contáctanos', level: 2 },
-              styles: { fontSize: '36px', marginBottom: '20px' },
-              position: { x: 50, y: 50 },
-              size: { width: '400px', height: 'auto' }
-            },
-            {
-              type: 'text',
-              props: { content: 'Estamos aquí para ayudarte con cualquier pregunta' },
-              styles: { fontSize: '18px', marginBottom: '40px' },
-              position: { x: 50, y: 120 },
-              size: { width: '500px', height: 'auto' }
-            },
-            {
-              type: 'text',
-              props: { content: '📧 info@empresa.com\n📞 +1 234 567 890\n📍 123 Calle Principal, Ciudad' },
-              styles: { lineHeight: '2' },
-              position: { x: 50, y: 200 },
-              size: { width: '300px', height: 'auto' }
-            },
-            {
-              type: 'text',
-              props: { content: 'Horarios de atención:\nLunes a Viernes: 9:00 - 18:00\nSábados: 9:00 - 14:00' },
-              styles: { lineHeight: '2' },
-              position: { x: 400, y: 200 },
-              size: { width: '300px', height: 'auto' }
-            }
-          ]
+          styles: {
+            width: '100%',
+            height: '500px'
+          }
         }
       ]
     }
@@ -873,6 +907,46 @@ const Sidebar = () => {
     return elements[categoryId] || [];
   };
 
+  // Función para obtener el tamaño por defecto según el tipo de elemento
+  const getDefaultSize = (type) => {
+    switch (type) {
+      case 'text':
+        return { width: '300px', height: 'auto' };
+      case 'heading':
+        return { width: '400px', height: 'auto' };
+      case 'button':
+        return { width: 'auto', height: 'auto' };
+      case 'image':
+        return { width: '300px', height: '200px' };
+      case 'header':
+        return { width: '100%', height: '80px' };
+      case 'container':
+      case 'section':
+        return { width: '400px', height: '300px' };
+      case 'catalog-section':
+        return { width: '800px', height: '500px' };
+      case 'carousel':
+        return { width: '800px', height: '400px' };
+      case 'grid':
+      case 'columns':
+        return { width: '500px', height: '300px' };
+      case 'card':
+        return { width: '300px', height: '250px' };
+      case 'modernCard':
+        return { width: '350px', height: '450px' };
+      case 'cardsCarousel':
+        return { width: '100%', height: '500px' };
+      case 'rectangle':
+        return { width: '200px', height: '120px' };
+      case 'circle':
+        return { width: '120px', height: '120px' };
+      case 'triangle':
+        return { width: '120px', height: '100px' };
+      default:
+        return { width: '200px', height: '100px' };
+    }
+  };
+
   const handleDragStart = (e, elementData) => {
     if (elementData.elements || elementData.isReactComponent) {
       // Es una sección predefinida (incluyendo componentes React)
@@ -884,119 +958,110 @@ const Sidebar = () => {
   };
 
   const handleElementClick = (elementData) => {
-    // Manejar secciones predefinidas con componentes React
-    if (elementData.isReactComponent && elementData.elements) {
-      const sectionElement = elementData.elements[0];
-      const baseX = Math.random() * 200 + 100;
-      const baseY = Math.random() * 200 + 100;
-      const defaultSize = getDefaultSize(sectionElement.type);
-      
-      addElement(
-        sectionElement.type,
-        sectionElement.props || {},
-        sectionElement.children || [],
-        sectionElement.styles || {},
-        { x: baseX, y: baseY },
-        defaultSize
-      );
+    console.log('=== INICIO handleElementClick ===');
+    console.log('Elemento clickeado:', elementData);
+    
+    // Prevenir múltiples ejecuciones usando un flag global
+    if (window._elementProcessing) {
+      console.log('Elemento ya está siendo procesado, ignorando click');
       return;
     }
-
-    // Añadir elemento directamente al canvas
-    const baseX = Math.random() * 200 + 100; // Posición aleatoria
-    const baseY = Math.random() * 200 + 100;
     
-    // Determinar tamaño apropiado según el tipo
-    const getDefaultSize = (type) => {
-      switch (type) {
-        case 'text':
-          return { width: '300px', height: 'auto' };
-        case 'heading':
-          return { width: '400px', height: 'auto' };
-        case 'button':
-          return { width: 'auto', height: 'auto' };
-        case 'image':
-          return { width: '300px', height: '200px' };
-        case 'header':
-          return { width: '100%', height: '80px' };
-        case 'container':
-        case 'section':
-          return { width: '400px', height: '300px' };
-        case 'catalog-section':
-          return { width: '800px', height: '500px' };
-        case 'grid':
-        case 'columns':
-          return { width: '500px', height: '300px' };
-        case 'card':
-          return { width: '300px', height: '250px' };
-        case 'rectangle':
-          return { width: '200px', height: '120px' };
-        case 'circle':
-          return { width: '120px', height: '120px' };
-        case 'triangle':
-          return { width: '120px', height: '100px' };
-        default:
-          return { width: '200px', height: '100px' };
+    try {
+      window._elementProcessing = true;
+      
+      // Manejar secciones predefinidas con componentes React
+      if (elementData.isReactComponent && elementData.elements) {
+        console.log('Es un componente React');
+        const sectionElement = elementData.elements[0];
+        const baseX = Math.random() * 200 + 100;
+        const baseY = Math.random() * 200 + 100;
+        const defaultSize = getDefaultSize(sectionElement.type);
+        
+        console.log('Agregando elemento React:', sectionElement.type, sectionElement);
+        addElement(
+          sectionElement.type,
+          sectionElement.props || {},
+          sectionElement.children || [],
+          sectionElement.styles || {},
+          { x: baseX, y: baseY },
+          defaultSize
+        );
+        console.log('=== FIN handleElementClick (React) ===');
+        return;
       }
-    };
-    
-    const defaultSize = getDefaultSize(elementData.type);
-    
-    // Configuración especial para headers
-    if (elementData.type === 'header') {
-      const headerProps = {
-        ...elementData.props
-      };
+
+      // Añadir elemento directamente al canvas
+      const baseX = Math.random() * 200 + 100; // Posición aleatoria
+      const baseY = Math.random() * 200 + 100;
       
-      const headerStyles = {
-        width: '100%',
-        height: '80px',
-        background: '#ffffff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 40px',
-        boxSizing: 'border-box',
-        border: '1px solid #e5e7eb',
-        ...elementData.styles
-      };
+      const defaultSize = getDefaultSize(elementData.type);
       
-      const headerChildren = [
-        {
-          id: `logo-${Date.now()}`,
-          type: 'text',
-          props: { content: 'Logo' },
-          styles: { fontSize: '24px', fontWeight: '700', color: '#22223b' },
-          position: { x: 0, y: 0 },
-          size: { width: 'auto', height: 'auto' }
-        },
-        {
-          id: `nav-${Date.now()}`,
-          type: 'button',
-          props: { text: 'Inicio', linkToSection: null },
-          styles: { background: '#3b82f6', color: '#fff', fontWeight: '600', borderRadius: '8px', padding: '10px 24px' },
-          position: { x: 0, y: 0 },
-          size: { width: 'auto', height: '40px' }
-        }
-      ];
-      
-      addElement(
-        elementData.type,
-        headerProps,
-        headerChildren,
-        headerStyles,
-        { x: 0, y: 0 }, // Headers siempre empiezan en la esquina superior
-        defaultSize
-      );
-    } else {
-      addElement(
-        elementData.type,
-        elementData.props || {},
-        elementData.children || [],
-        elementData.styles || {},
-        { x: baseX, y: baseY },
-        defaultSize
-      );
+      // Configuración especial para headers
+      if (elementData.type === 'header') {
+        const headerProps = {
+          ...elementData.props
+        };
+        
+        const headerStyles = {
+          width: '100%',
+          height: '80px',
+          background: '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 40px',
+          boxSizing: 'border-box',
+          border: '1px solid #e5e7eb',
+          ...elementData.styles
+        };
+        
+        const headerChildren = [
+          {
+            id: `logo-${Date.now()}`,
+            type: 'text',
+            props: { content: 'Logo' },
+            styles: { fontSize: '24px', fontWeight: '700', color: '#22223b' },
+            position: { x: 0, y: 0 },
+            size: { width: 'auto', height: 'auto' }
+          },
+          {
+            id: `nav-${Date.now()}`,
+            type: 'button',
+            props: { text: 'Inicio', linkToSection: null },
+            styles: { background: '#3b82f6', color: '#fff', fontWeight: '600', borderRadius: '8px', padding: '10px 24px' },
+            position: { x: 0, y: 0 },
+            size: { width: 'auto', height: '40px' }
+          }
+        ];
+        
+        addElement(
+          elementData.type,
+          headerProps,
+          headerChildren,
+          headerStyles,
+          { x: 0, y: 0 }, // Headers siempre empiezan en la esquina superior
+          defaultSize
+        );
+      } else {
+        console.log('Agregando elemento normal:', elementData.type);
+        addElement(
+          elementData.type,
+          elementData.props || {},
+          elementData.children || [],
+          elementData.styles || {},
+          { x: baseX, y: baseY },
+          defaultSize
+        );
+        console.log('=== FIN handleElementClick (normal) ===');
+      }
+    } catch (error) {
+      console.error('Error en handleElementClick:', error);
+    } finally {
+      // Resetear el flag después de un tiempo para permitir futuros clicks
+      setTimeout(() => {
+        window._elementProcessing = false;
+      }, 2000);
     }
   };
 
@@ -1080,7 +1145,14 @@ const Sidebar = () => {
               key={index}
               draggable
               onDragStart={(e) => handleDragStart(e, element)}
-              onClick={() => handleElementClick(element)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                if (!window._elementProcessing) {
+                  handleElementClick(element);
+                }
+              }}
             >
               <ElementIcon>
                 {allCategories
@@ -1226,107 +1298,7 @@ const Sidebar = () => {
           {submenusCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
       </MainIconBar>
-      {!submenusCollapsed && activeTab === 'elements' && (
-        <>
-          <CategoryPanel>
-            <CategoryHeader>
-              <CategoryTitle>
-                <Plus size={20} />
-                Elementos
-              </CategoryTitle>
-              <CategorySubtitle>
-                Arrastra elementos al canvas para añadirlos
-              </CategorySubtitle>
-            </CategoryHeader>
-            <CategoryList>
-              {allCategories.map((group) => (
-                <CategoryGroup key={group.group}>
-                  <CategoryGroupTitle>
-                    {group.icon}
-                    {group.group}
-                  </CategoryGroupTitle>
-                  {group.items.map((item) => (
-                    <CategoryItem
-                      key={item.id}
-                      active={activeCategory === item.id}
-                      onClick={() => setActiveCategory(item.id)}
-                    >
-                      <CategoryIcon active={activeCategory === item.id}>
-                        <item.icon size={20} />
-                      </CategoryIcon>
-                      <div>
-                        <div>{item.name}</div>
-                        <div style={{ fontSize: '12px', opacity: 0.7 }}>
-                          {item.description}
-                        </div>
-                      </div>
-                    </CategoryItem>
-                  ))}
-                </CategoryGroup>
-              ))}
-            </CategoryList>
-          </CategoryPanel>
-          <ElementPanel>
-            <ElementHeader>
-              <ElementTitle>
-                {allCategories
-                  .flatMap(g => g.items)
-                  .find(item => item.id === activeCategory)?.name || 'Elementos'}
-              </ElementTitle>
-              <ElementSubtitle>
-                Haz clic o arrastra para añadir
-              </ElementSubtitle>
-            </ElementHeader>
-            {activeCategory === 'image' && (
-              <div style={{ padding: '0 20px 16px 20px', display: 'flex', alignItems: 'center' }}>
-                <button
-                  onClick={handleUploadSVG}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    background: '#f3f4f6',
-                    border: '1px solid #d1d5db',
-                    borderRadius: 8,
-                    padding: '8px 16px',
-                    color: '#374151',
-                    fontWeight: 600,
-                    fontSize: 14,
-                    cursor: 'pointer',
-                    marginBottom: 8
-                  }}
-                >
-                  <Upload size={18} /> Subir SVG
-                </button>
-              </div>
-            )}
-            <ElementGrid>
-              {getElementsForCategory(activeCategory).map((element, index) => (
-                <ElementCard
-                  key={index}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, element)}
-                  onClick={() => handleElementClick(element)}
-                >
-                  <ElementIcon>
-                    {allCategories
-                      .flatMap(g => g.items)
-                      .find(item => item.id === activeCategory)?.icon && 
-                      React.createElement(
-                        allCategories
-                          .flatMap(g => g.items)
-                          .find(item => item.id === activeCategory).icon,
-                        { size: 20 }
-                      )}
-                  </ElementIcon>
-                  <ElementName>{element.name}</ElementName>
-                  <ElementDescription>{element.description}</ElementDescription>
-                </ElementCard>
-              ))}
-            </ElementGrid>
-          </ElementPanel>
-        </>
-      )}
+      {!submenusCollapsed && activeTab === 'elements' && renderElementsTab()}
       {!submenusCollapsed && activeTab === 'sections' && renderSectionsTab()}
       {!submenusCollapsed && activeTab === 'pages' && renderPagesTab()}
       {!submenusCollapsed && activeTab === 'templates' && renderTemplatesTab()}

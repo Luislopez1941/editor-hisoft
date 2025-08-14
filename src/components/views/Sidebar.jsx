@@ -24,15 +24,15 @@ const Sidebar = ({
       </div>
     </div>
     <nav className="sidebar-nav">
-      <div className="nav-item active">
-        <Settings size={16} />
-        <span>Configuración</span>
-      </div>
-      <div className="nav-item">
+             <div className="nav-item active" onClick={onWebsiteClick}>
+         <Settings size={16} />
+         <span>Sitio web</span>
+       </div>
+      {/* <div className="nav-item">
         <Home size={16} />
         <span>Inicio</span>
-      </div>
-      <div className="nav-item expandable" onClick={() => toggleMenu('mobile')}>
+      </div> */}
+      {/* <div className="nav-item expandable" onClick={() => toggleMenu('mobile')}>
         <Smartphone size={16} />
         <span>Sitio y app móvil</span>
         <ChevronDown size={16} className={expandedMenus?.mobile ? 'rotated' : ''} />
@@ -62,8 +62,8 @@ const Sidebar = ({
             Hopp - Link en bio
           </div>
         </div>
-      )}
-      <div className="nav-item">
+      )} */}
+      {/* <div className="nav-item">
         <DollarSign size={16} />
         <span>Ventas</span>
       </div>
@@ -86,7 +86,7 @@ const Sidebar = ({
       <div className="nav-item">
         <Megaphone size={16} />
         <span>Marketing</span>
-      </div>
+      </div> */}
     </nav>
   </div>
 );

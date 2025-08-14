@@ -183,6 +183,10 @@ const EmptyStateHint = styled.div`
   font-style: italic;
 `;
 
+
+
+
+
 const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
   const {
     elements,
@@ -190,6 +194,7 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
     selectElement,
     deleteElement,
     addElement,
+    updateElement,
     canvasWidth,
     canvasHeight,
     zoom,
@@ -203,6 +208,9 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
 
   const canvasRef = useRef(null);
   const [realBounds, setRealBounds] = useState(null);
+  
+  // Estado para el canvas (pan removido)
+  const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
 
   // Handle drag and drop
   const handleDrop = (e) => {
@@ -271,13 +279,104 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
     selectElement(elementId);
   };
 
+  // Event listeners para flechas del teclado (pan removido)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Siempre permitir operaciones estándar de copiar/pegar/cortar
+      if (e.ctrlKey || e.metaKey) {
+        return; // Permitir que todas las operaciones con Ctrl/Cmd funcionen normalmente
+      }
+      
+      // No procesar teclas si el usuario está escribiendo en un input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.contentEditable === 'true') {
+        return;
+      }
+      
+      // Mover elementos con flechas del teclado
+      if (selectedElementId && !isPreviewMode) {
+        const selectedElement = elements.find(el => el.id === selectedElementId);
+        if (selectedElement) {
+          const currentX = selectedElement.position?.x || 0;
+          const currentY = selectedElement.position?.y || 0;
+          let newX = currentX;
+          let newY = currentY;
+          let moved = false;
+          
+          switch (e.code) {
+            case 'ArrowLeft':
+              e.preventDefault();
+              newX = Math.max(0, currentX - 10);
+              moved = true;
+              break;
+            case 'ArrowRight':
+              e.preventDefault();
+              newX = Math.min(canvasWidth - (parseInt(selectedElement.size?.width) || 100), currentX + 10);
+              moved = true;
+              break;
+            case 'ArrowUp':
+              e.preventDefault();
+              newY = Math.max(0, currentY - 10);
+              moved = true;
+              break;
+            case 'ArrowDown':
+              e.preventDefault();
+              newY = Math.min(canvasHeight - (parseInt(selectedElement.size?.height) || 100), currentY + 10);
+              moved = true;
+              break;
+            default:
+              // Movimiento más rápido con Shift
+              if (e.shiftKey && (e.code === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'ArrowUp' || e.code === 'ArrowDown')) {
+                e.preventDefault();
+                switch (e.code) {
+                  case 'ArrowLeft':
+                    newX = Math.max(0, currentX - 50);
+                    moved = true;
+                    break;
+                  case 'ArrowRight':
+                    newX = Math.min(canvasWidth - (parseInt(selectedElement.size?.width) || 100), currentX + 10);
+                    moved = true;
+                    break;
+                  case 'ArrowUp':
+                    newY = Math.max(0, currentY - 50);
+                    moved = true;
+                    break;
+                  case 'ArrowDown':
+                    newY = Math.min(canvasHeight - (parseInt(selectedElement.size?.height) || 100), currentY + 10);
+                    moved = true;
+                    break;
+                }
+              }
+              break;
+          }
+          
+          if (moved) {
+            console.log(`Moviendo elemento ${selectedElementId} a (${newX}, ${newY})`);
+            updateElement(selectedElementId, { position: { x: newX, y: newY } });
+          }
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedElementId, elements, canvasWidth, canvasHeight, isPreviewMode]);
+
+  // Handlers para pan del canvas (removidos)
+  // El pan del canvas con espacio ha sido eliminado
+
   return (
-    <CanvasContainer
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onClick={handleCanvasClick}
-    >
+    <>
+
+
+      <CanvasContainer
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onClick={handleCanvasClick}
+      >
       {/* Indicador de sección actual */}
       {currentSection && (
         <SectionIndicator>
@@ -317,7 +416,7 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
           
           <CanvasContent>
             <ElementsContainer>
-              {elements.length === 0 ? (
+              {!elements || elements.length === 0 ? (
                 <EmptyState>
                   <EmptyStateIcon>🎨</EmptyStateIcon>
                   <EmptyStateText>Comienza a crear tu sitio web</EmptyStateText>
@@ -344,10 +443,11 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
             {/* Líneas de snap visuales */}
             {!isPreviewMode && <SnapLines snapLines={snapLines} />}
           </CanvasContent>
-        </CanvasArea>
-      </CanvasWrapper>
-    </CanvasContainer>
-  );
-};
+                 </CanvasArea>
+       </CanvasWrapper>
+     </CanvasContainer>
+     </>
+   );
+ };
 
 export default Canvas; 

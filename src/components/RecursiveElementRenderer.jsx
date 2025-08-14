@@ -10,7 +10,7 @@ const RecursiveElementRenderer = ({
   onDropSection, 
   realBounds 
 }) => {
-  const { selectedElementId } = useEditor();
+  const { selectedElementId, updateElement } = useEditor();
 
   const renderElementsRecursive = (elements, depth = 0) => {
     return elements.map((element) => (
@@ -20,7 +20,7 @@ const RecursiveElementRenderer = ({
           isSelected={element.id === selectedElementId}
           isPreviewMode={isPreviewMode}
           onClick={(e) => onElementClick(e, element.id)}
-          onMove={() => {}}
+          onMove={updateElement}
           onDelete={onDelete}
           onDropSection={onDropSection}
           renderChildren={false}

@@ -1,6 +1,78 @@
 // Utilidades para el almacenamiento y gestión de proyectos de sitios web
 
 const STORAGE_KEY = 'web_editor_projects';
+const MAX_STORAGE_SIZE = 4.5 * 1024 * 1024; // 4.5MB limit to be safe
+const MAX_PROJECTS = 50; // Maximum number of projects to keep
+
+// Función para comprimir datos (eliminar propiedades innecesarias)
+const compressProjectData = (projectData) => {
+  const compressed = {
+    id: projectData.id,
+    name: projectData.name,
+    description: projectData.description,
+    createdAt: projectData.createdAt,
+    updatedAt: projectData.updatedAt,
+    sections: projectData.sections,
+    version: projectData.version || '1.0.0'
+  };
+  
+  // Solo incluir propiedades opcionales si existen y no son null
+  if (projectData.tags && projectData.tags.length > 0) {
+    compressed.tags = projectData.tags;
+  }
+  if (projectData.thumbnail) {
+    compressed.thumbnail = projectData.thumbnail;
+  }
+  
+  return compressed;
+};
+
+// Función para verificar el tamaño del localStorage
+const getStorageSize = () => {
+  let totalSize = 0;
+  for (let key in localStorage) {
+    if (localStorage.hasOwnProperty(key)) {
+      totalSize += localStorage[key].length + key.length;
+    }
+  }
+  return totalSize;
+};
+
+// Función para limpiar proyectos antiguos
+const cleanupOldProjects = () => {
+  try {
+    const projects = getProjects();
+    
+    if (projects.length <= MAX_PROJECTS) {
+      return; // No need to clean up
+    }
+    
+    // Ordenar por fecha de actualización (más antiguos primero)
+    projects.sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt));
+    
+    // Mantener solo los proyectos más recientes
+    const projectsToKeep = projects.slice(-MAX_PROJECTS);
+    
+    // Guardar solo los proyectos que queremos mantener
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(projectsToKeep));
+    
+    console.log(`Limpieza completada: ${projects.length - projectsToKeep.length} proyectos eliminados`);
+  } catch (error) {
+    console.error('Error durante la limpieza:', error);
+  }
+};
+
+// Función para verificar si hay espacio suficiente
+const hasStorageSpace = (dataSize) => {
+  const currentSize = getStorageSize();
+  const availableSpace = MAX_STORAGE_SIZE - currentSize;
+  return dataSize <= availableSpace;
+};
+
+// Función para obtener el tamaño aproximado de los datos
+const getDataSize = (data) => {
+  return JSON.stringify(data).length;
+};
 
 // Estructura de un proyecto guardado
 export const createProjectData = (sections, metadata = {}) => {
@@ -17,10 +89,27 @@ export const createProjectData = (sections, metadata = {}) => {
   };
 };
 
-// Guardar proyecto en localStorage
+// Guardar proyecto en localStorage con gestión de cuota
 export const saveProject = (projectData) => {
   try {
     console.log('Guardando proyecto en localStorage:', projectData);
+    
+    // Comprimir datos del proyecto
+    const compressedData = compressProjectData(projectData);
+    const dataSize = getDataSize(compressedData);
+    
+    console.log('Tamaño de datos comprimidos:', dataSize, 'bytes');
+    
+    // Verificar espacio disponible
+    if (!hasStorageSpace(dataSize)) {
+      console.log('Espacio insuficiente, intentando limpiar proyectos antiguos...');
+      cleanupOldProjects();
+      
+      // Verificar nuevamente después de la limpieza
+      if (!hasStorageSpace(dataSize)) {
+        throw new Error('Espacio insuficiente en localStorage. Intenta eliminar algunos proyectos antiguos o exportar tu trabajo actual.');
+      }
+    }
     
     const existingProjects = getProjects();
     const projectIndex = existingProjects.findIndex(p => p.id === projectData.id);
@@ -29,23 +118,46 @@ export const saveProject = (projectData) => {
       // Actualizar proyecto existente
       existingProjects[projectIndex] = {
         ...existingProjects[projectIndex],
-        ...projectData,
+        ...compressedData,
         updatedAt: new Date().toISOString()
       };
       console.log('Proyecto actualizado:', existingProjects[projectIndex]);
     } else {
       // Agregar nuevo proyecto
-      existingProjects.push(projectData);
-      console.log('Nuevo proyecto agregado:', projectData);
+      existingProjects.push(compressedData);
+      console.log('Nuevo proyecto agregado:', compressedData);
     }
     
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(existingProjects));
-    console.log('Proyectos guardados en localStorage:', existingProjects.length);
+    // Intentar guardar con manejo de errores específicos
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(existingProjects));
+      console.log('Proyectos guardados en localStorage:', existingProjects.length);
+    } catch (storageError) {
+      if (storageError.name === 'QuotaExceededError' || storageError.code === 22) {
+        // Error de cuota excedida
+        console.log('Cuota excedida, intentando limpiar y guardar...');
+        cleanupOldProjects();
+        
+        // Intentar guardar solo el proyecto actual
+        const currentProject = [compressedData];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(currentProject));
+        console.log('Proyecto guardado después de limpieza de emergencia');
+      } else {
+        throw storageError;
+      }
+    }
     
-    return { success: true, project: projectData };
+    return { success: true, project: compressedData };
   } catch (error) {
     console.error('Error al guardar proyecto:', error);
-    return { success: false, error: error.message };
+    
+    // Proporcionar sugerencias específicas según el tipo de error
+    let errorMessage = error.message;
+    if (error.name === 'QuotaExceededError' || error.code === 22) {
+      errorMessage = 'El almacenamiento del navegador está lleno. Intenta: 1) Eliminar proyectos antiguos, 2) Exportar tu trabajo actual, 3) Limpiar el caché del navegador.';
+    }
+    
+    return { success: false, error: errorMessage };
   }
 };
 
@@ -447,4 +559,106 @@ export const getProjectStats = () => {
     }).length,
     totalSize: projects.reduce((acc, p) => acc + JSON.stringify(p).length, 0)
   };
+};
+
+// Nuevas funciones de gestión de almacenamiento
+
+// Obtener información del almacenamiento
+export const getStorageInfo = () => {
+  const currentSize = getStorageSize();
+  const availableSpace = MAX_STORAGE_SIZE - currentSize;
+  const usagePercentage = (currentSize / MAX_STORAGE_SIZE) * 100;
+  
+  return {
+    currentSize,
+    availableSpace,
+    usagePercentage,
+    maxSize: MAX_STORAGE_SIZE,
+    isNearLimit: usagePercentage > 80
+  };
+};
+
+// Limpiar todos los proyectos excepto el actual
+export const clearAllProjectsExcept = (projectId) => {
+  try {
+    const projects = getProjects();
+    const currentProject = projects.find(p => p.id === projectId);
+    
+    if (currentProject) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([currentProject]));
+      console.log('Todos los proyectos eliminados excepto el actual');
+      return { success: true, message: 'Almacenamiento limpiado exitosamente' };
+    } else {
+      return { success: false, error: 'Proyecto actual no encontrado' };
+    }
+  } catch (error) {
+    console.error('Error al limpiar proyectos:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Limpiar todos los proyectos
+export const clearAllProjects = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    console.log('Todos los proyectos eliminados');
+    return { success: true, message: 'Todos los proyectos eliminados exitosamente' };
+  } catch (error) {
+    console.error('Error al eliminar todos los proyectos:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Obtener proyectos ordenados por fecha de actualización
+export const getProjectsSortedByDate = () => {
+  const projects = getProjects();
+  return projects.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+};
+
+// Eliminar proyectos antiguos automáticamente
+export const autoCleanupOldProjects = () => {
+  try {
+    const projects = getProjects();
+    
+    if (projects.length <= MAX_PROJECTS) {
+      return { success: true, message: 'No es necesario limpiar proyectos' };
+    }
+    
+    cleanupOldProjects();
+    return { success: true, message: `Limpieza automática completada` };
+  } catch (error) {
+    console.error('Error en limpieza automática:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Verificar si el proyecto actual puede ser guardado
+export const canSaveProject = (projectData) => {
+  const compressedData = compressProjectData(projectData);
+  const dataSize = getDataSize(compressedData);
+  const storageInfo = getStorageInfo();
+  
+  return {
+    canSave: dataSize <= storageInfo.availableSpace,
+    dataSize,
+    availableSpace: storageInfo.availableSpace,
+    needsCleanup: storageInfo.isNearLimit
+  };
+};
+
+// Función para exportar proyecto como respaldo antes de limpiar
+export const backupProjectBeforeCleanup = (projectData) => {
+  try {
+    const backupData = {
+      ...projectData,
+      backedUpAt: new Date().toISOString(),
+      backupReason: 'storage_cleanup'
+    };
+    
+    const result = exportProjectSimple(backupData, `${projectData.name}-backup.json`);
+    return { success: true, backupFile: result.filename };
+  } catch (error) {
+    console.error('Error al crear respaldo:', error);
+    return { success: false, error: error.message };
+  }
 }; 

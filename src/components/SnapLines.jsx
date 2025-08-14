@@ -13,7 +13,7 @@ const SnapLineContainer = styled.div`
 
 const SnapLine = styled.div`
   position: absolute;
-  background: #ff00ff;
+  background: #3b82f6;
   pointer-events: none;
   z-index: 9999;
   
@@ -22,13 +22,13 @@ const SnapLine = styled.div`
     height: 100%;
     left: ${props.$position}px;
     top: 0;
-    box-shadow: 0 0 0 0.5px rgba(255, 0, 255, 0.3);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
   ` : `
     height: 1px;
     width: 100%;
     top: ${props.$position}px;
     left: 0;
-    box-shadow: 0 0 0 0.5px rgba(255, 0, 255, 0.3);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
   `}
   
   animation: snapPulse 0.3s ease-out;

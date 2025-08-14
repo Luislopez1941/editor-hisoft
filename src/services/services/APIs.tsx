@@ -3,6 +3,7 @@ import ConfigurationAPIs from '../api/ConfigurationAPIs';
 const APIs = {
 
 
+
   // Editor de pagina web
   login: async (email: string, password: string, customPath?: string) => {
     const path = customPath || 'usuario_login';
@@ -15,6 +16,36 @@ const APIs = {
   },
 
  
+
+  createPage: async (data, customPath) => {
+    const path = customPath || 'pagina_cliente/create';
+    return ConfigurationAPIs.post(path, data)
+  },
+
+  updatePage: async (data, customPath) => {
+    const path = customPath || 'pagina_cliente/updatePagina';
+    return ConfigurationAPIs.post(path, data)
+  },
+  
+  getPage: async (id: string) => {
+    const path = `pagina_cliente/get/${id}`;
+    return ConfigurationAPIs.get(path)
+  },
+
+
+  getCompaniesXUsers: async (id: number, customPath?: string) => {
+    const path = customPath || `get_empresas_x_usuario/${id}`;
+    return ConfigurationAPIs.get(path);
+  },
+
+  getBranchOfficesXCompanies: async ( empresa_id : number, id_usuario : number, customPath?: string) => {
+    const path = customPath || `get_sucursal_x_empresa/${empresa_id}/${id_usuario}`
+    return ConfigurationAPIs.get(path)
+  },
+
+
+
+
 
 
 
@@ -50,6 +81,17 @@ const APIs = {
 
   getFamilies: async (id: number, customPath?: string) => {
     const path = customPath || `familia_get/${id}`
+    return ConfigurationAPIs.get(path)
+  },
+
+  // APIs para empresas y sucursales
+  getEmpresas: async (customPath?: string) => {
+    const path = customPath || 'empresas_get';
+    return ConfigurationAPIs.get(path)
+  },
+
+  getSucursales: async (empresaId: number, customPath?: string) => {
+    const path = customPath || `sucursales_get/${empresaId}`;
     return ConfigurationAPIs.get(path)
   },
 
