@@ -21,7 +21,11 @@ import {
   Zap,
   Star,
   ChevronLeft, ChevronRight,
-  Upload
+  Upload,
+  FileText,
+  Mail,
+  Bell,
+  Search
 } from 'lucide-react';
 import { useEditor } from '../context/EditorContext';
 import SectionManager from './SectionManager';
@@ -66,20 +70,20 @@ const MainIcon = styled.div`
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
-  color: ${props => props.active ? '#ffffff' : '#94a3b8'};
-  background: ${props => props.active ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'transparent'};
-  border: 1px solid ${props => props.active ? '#3b82f6' : 'transparent'};
+  color: ${props => props.$active ? '#ffffff' : '#94a3b8'};
+  background: ${props => props.$active ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'transparent'};
+  border: 1px solid ${props => props.$active ? '#3b82f6' : 'transparent'};
   position: relative;
   
   &:hover {
     color: #ffffff;
-    background: ${props => props.active ? 'linear-gradient(135deg, #2563eb, #1e40af)' : 'rgba(59, 130, 246, 0.1)'};
-    border-color: ${props => props.active ? '#2563eb' : 'rgba(59, 130, 246, 0.3)'};
+    background: ${props => props.$active ? 'linear-gradient(135deg, #2563eb, #1e40af)' : 'rgba(59, 130, 246, 0.1)'};
+    border-color: ${props => props.$active ? '#2563eb' : 'rgba(59, 130, 246, 0.3)'};
     transform: translateY(-1px);
-    box-shadow: ${props => props.active ? '0 8px 16px rgba(59, 130, 246, 0.3)' : '0 4px 8px rgba(59, 130, 246, 0.2)'};
+    box-shadow: ${props => props.$active ? '0 8px 16px rgba(59, 130, 246, 0.3)' : '0 4px 8px rgba(59, 130, 246, 0.2)'};
   }
   
-  ${props => props.active && `
+  ${props => props.$active && `
     &::before {
       content: '';
       position: absolute;
@@ -163,16 +167,16 @@ const CategoryItem = styled.div`
   padding: 12px 20px;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: ${props => props.active ? '#1e293b' : '#475569'};
-  background: ${props => props.active ? 'linear-gradient(135deg, #eff6ff, #dbeafe)' : 'transparent'};
-  border-left: 3px solid ${props => props.active ? '#3b82f6' : 'transparent'};
+  color: ${props => props.$active ? '#1e293b' : '#475569'};
+  background: ${props => props.$active ? 'linear-gradient(135deg, #eff6ff, #dbeafe)' : 'transparent'};
+  border-left: 3px solid ${props => props.$active ? '#3b82f6' : 'transparent'};
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 14px;
-  font-weight: ${props => props.active ? '600' : '500'};
+  font-weight: ${props => props.$active ? '600' : '500'};
   position: relative;
   
   &:hover {
-    background: ${props => props.active ? 'linear-gradient(135deg, #eff6ff, #dbeafe)' : '#f8fafc'};
+    background: ${props => props.$active ? 'linear-gradient(135deg, #eff6ff, #dbeafe)' : '#f8fafc'};
     color: #1e293b;
   }
   
@@ -185,7 +189,7 @@ const CategoryItem = styled.div`
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: ${props => props.active ? '#3b82f6' : 'transparent'};
+    background: ${props => props.$active ? '#3b82f6' : 'transparent'};
   }
 `;
 
@@ -195,7 +199,7 @@ const CategoryIcon = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${props => props.active ? '#3b82f6' : '#64748b'};
+  color: ${props => props.$active ? '#3b82f6' : '#64748b'};
 `;
 
 // Nivel 3: Panel de elementos específicos (derecha)
@@ -481,6 +485,15 @@ const Sidebar = () => {
       ]
     },
     {
+      group: 'Formularios',
+      icon: <FileText size={14} />,
+      items: [
+        { id: 'contact-form', icon: Mail, name: 'Formulario de Contacto', description: 'Formulario completo con validación' },
+        { id: 'newsletter-form', icon: Bell, name: 'Newsletter', description: 'Suscripción a boletín' },
+        { id: 'search-form', icon: Search, name: 'Búsqueda', description: 'Campo de búsqueda' }
+      ]
+    },
+    {
       group: 'Formas',
       icon: <Shapes size={14} />,
       items: [
@@ -705,6 +718,39 @@ const Sidebar = () => {
           }
         }
       ]
+    },
+    {
+      id: 'contact-form',
+      name: 'Formulario de Contacto',
+      description: 'Formulario completo con campos para nombre, email, teléfono y mensaje',
+      tags: ['Contacto', 'Formulario', 'Lead Generation'],
+      background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+      preview: '📧',
+      isReactComponent: true,
+      elements: [
+        {
+          type: 'contact-form',
+          props: {
+            title: 'Contáctanos',
+            subtitle: '¿Tienes alguna pregunta? ¡Escríbenos!',
+            fields: [
+              { type: 'text', name: 'nombre', label: 'Nombre completo', required: true, placeholder: 'Tu nombre completo' },
+              { type: 'email', name: 'email', label: 'Correo electrónico', required: true, placeholder: 'tu@email.com' },
+              { type: 'tel', name: 'telefono', label: 'Teléfono', required: false, placeholder: '+52 (55) 1234-5678' },
+              { type: 'textarea', name: 'mensaje', label: 'Mensaje', required: true, placeholder: 'Cuéntanos en qué podemos ayudarte...', rows: 4 }
+            ],
+            submitText: 'Enviar mensaje',
+            successMessage: '¡Gracias! Tu mensaje ha sido enviado correctamente.',
+            errorMessage: 'Hubo un error al enviar el mensaje. Por favor, intenta de nuevo.'
+          },
+          styles: {
+            width: '100%',
+            maxWidth: '600px',
+            margin: '0 auto',
+            padding: '40px 20px'
+          }
+        }
+      ]
     }
   ];
 
@@ -902,6 +948,75 @@ const Sidebar = () => {
             padding: '20px'
           }
         }
+      ],
+      'contact-form': [
+        { 
+          type: 'contact-form', 
+          name: 'Formulario de Contacto', 
+          description: 'Formulario completo con validación',
+          props: { 
+            title: 'Contáctanos',
+            subtitle: '¿Tienes alguna pregunta? ¡Escríbenos!',
+            fields: [
+              { type: 'text', name: 'nombre', label: 'Nombre completo', required: true, placeholder: 'Tu nombre completo' },
+              { type: 'email', name: 'email', label: 'Correo electrónico', required: true, placeholder: 'tu@email.com' },
+              { type: 'tel', name: 'telefono', label: 'Teléfono', required: false, placeholder: '+52 (55) 1234-5678' },
+              { type: 'textarea', name: 'mensaje', label: 'Mensaje', required: true, placeholder: 'Cuéntanos en qué podemos ayudarte...', rows: 4 }
+            ],
+            submitText: 'Enviar mensaje',
+            successMessage: '¡Gracias! Tu mensaje ha sido enviado correctamente.',
+            errorMessage: 'Hubo un error al enviar el mensaje. Por favor, intenta de nuevo.'
+          },
+          styles: { 
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            border: '1px solid #e5e7eb',
+            borderRadius: '20px',
+            padding: '48px 32px',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05)'
+          }
+        }
+      ],
+      'newsletter-form': [
+        { 
+          type: 'newsletter-form', 
+          name: 'Newsletter', 
+          description: 'Suscripción a boletín',
+          props: { 
+            title: 'Suscríbete a nuestro boletín',
+            subtitle: 'Recibe las últimas noticias y ofertas',
+            placeholder: 'tu@email.com',
+            submitText: 'Suscribirse',
+            successMessage: '¡Gracias por suscribirte!',
+            errorMessage: 'Error al suscribirse. Intenta de nuevo.'
+          },
+          styles: { 
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: '#ffffff',
+            borderRadius: '24px',
+            padding: '40px 28px',
+            textAlign: 'center',
+            boxShadow: '0 20px 40px rgba(102, 126, 234, 0.3)'
+          }
+        }
+      ],
+      'search-form': [
+        { 
+          type: 'search-form', 
+          name: 'Búsqueda', 
+          description: 'Campo de búsqueda',
+          props: { 
+            placeholder: 'Buscar...',
+            submitText: 'Buscar',
+            buttonIcon: '🔍'
+          },
+          styles: { 
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            border: '2px solid #e5e7eb',
+            borderRadius: '28px',
+            padding: '12px 20px',
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)'
+          }
+        }
       ]
     };
     return elements[categoryId] || [];
@@ -942,6 +1057,12 @@ const Sidebar = () => {
         return { width: '120px', height: '120px' };
       case 'triangle':
         return { width: '120px', height: '100px' };
+      case 'contact-form':
+        return { width: '600px', height: '500px' };
+      case 'newsletter-form':
+        return { width: '500px', height: '200px' };
+      case 'search-form':
+        return { width: '400px', height: '60px' };
       default:
         return { width: '200px', height: '100px' };
     }
@@ -958,12 +1079,8 @@ const Sidebar = () => {
   };
 
   const handleElementClick = (elementData) => {
-    console.log('=== INICIO handleElementClick ===');
-    console.log('Elemento clickeado:', elementData);
-    
     // Prevenir múltiples ejecuciones usando un flag global
     if (window._elementProcessing) {
-      console.log('Elemento ya está siendo procesado, ignorando click');
       return;
     }
     
@@ -972,13 +1089,11 @@ const Sidebar = () => {
       
       // Manejar secciones predefinidas con componentes React
       if (elementData.isReactComponent && elementData.elements) {
-        console.log('Es un componente React');
         const sectionElement = elementData.elements[0];
         const baseX = Math.random() * 200 + 100;
         const baseY = Math.random() * 200 + 100;
         const defaultSize = getDefaultSize(sectionElement.type);
         
-        console.log('Agregando elemento React:', sectionElement.type, sectionElement);
         addElement(
           sectionElement.type,
           sectionElement.props || {},
@@ -987,12 +1102,11 @@ const Sidebar = () => {
           { x: baseX, y: baseY },
           defaultSize
         );
-        console.log('=== FIN handleElementClick (React) ===');
         return;
       }
 
       // Añadir elemento directamente al canvas
-      const baseX = Math.random() * 200 + 100; // Posición aleatoria
+      const baseX = Math.random() * 200 + 100;
       const baseY = Math.random() * 200 + 100;
       
       const defaultSize = getDefaultSize(elementData.type);
@@ -1040,11 +1154,10 @@ const Sidebar = () => {
           headerProps,
           headerChildren,
           headerStyles,
-          { x: 0, y: 0 }, // Headers siempre empiezan en la esquina superior
+          { x: 0, y: 0 },
           defaultSize
         );
       } else {
-        console.log('Agregando elemento normal:', elementData.type);
         addElement(
           elementData.type,
           elementData.props || {},
@@ -1053,7 +1166,6 @@ const Sidebar = () => {
           { x: baseX, y: baseY },
           defaultSize
         );
-        console.log('=== FIN handleElementClick (normal) ===');
       }
     } catch (error) {
       console.error('Error en handleElementClick:', error);
@@ -1061,7 +1173,7 @@ const Sidebar = () => {
       // Resetear el flag después de un tiempo para permitir futuros clicks
       setTimeout(() => {
         window._elementProcessing = false;
-      }, 2000);
+      }, 500);
     }
   };
 
@@ -1087,10 +1199,10 @@ const Sidebar = () => {
               {group.items.map((item) => (
                 <CategoryItem
                   key={item.id}
-                  active={activeCategory === item.id}
+                  $active={activeCategory === item.id}
                   onClick={() => setActiveCategory(item.id)}
                 >
-                  <CategoryIcon active={activeCategory === item.id}>
+                  <CategoryIcon $active={activeCategory === item.id}>
                     <item.icon size={20} />
                   </CategoryIcon>
                   <div>
@@ -1266,7 +1378,7 @@ const Sidebar = () => {
         {mainTabs.map((tab) => (
           <MainIcon
             key={tab.id}
-            active={activeTab === tab.id}
+            $active={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id)}
             title={tab.description}
           >

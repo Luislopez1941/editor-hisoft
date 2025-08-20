@@ -23,9 +23,79 @@ const initialState = {
   showGuides: true,
   snapLines: { vertical: [], horizontal: [] }, // Líneas de snap activadas
   canvasBackground: '#f8fafc', // Color de fondo del canvas
+  
+  // Metadatos del proyecto actual
+  projectMetadata: {
+    id: null,
+    name: '',
+    description: '',
+    empresa: '',
+    sucursal: '',
+    id_sucursal: null,
+    isServerPage: false,
+    page_id: null
+  }
 };
 
 const editorReducer = (state, action) => {
+  // Función de utilidad para asegurar que una sección tenga la estructura correcta
+  const ensureSectionStructure = (section) => {
+    if (!section) return null;
+    return {
+      id: section.id || `section-${Date.now()}`,
+      name: section.name || 'Sin nombre',
+      slug: section.slug || section.name?.toLowerCase().replace(/\s+/g, '-') || 'sin-nombre',
+      elements: Array.isArray(section.elements) ? section.elements : [],
+      isHome: section.isHome || false,
+      ...section
+    };
+  };
+
+  // Función para asegurar que la sección activa existe y tenga la estructura correcta
+  const ensureActiveSection = (state) => {
+    if (!state.sections[state.activeSectionId]) {
+      // Si no hay sección activa, usar 'home' como fallback
+      if (state.sections.home) {
+        return {
+          ...state,
+          activeSectionId: 'home'
+        };
+      }
+      
+      // Si no hay 'home', crear una sección home por defecto
+      const homeSection = {
+        id: 'home',
+        name: 'Inicio',
+        slug: 'home',
+        elements: [],
+        isHome: true
+      };
+      
+      return {
+        ...state,
+        sections: {
+          ...state.sections,
+          home: homeSection
+        },
+        activeSectionId: 'home'
+      };
+    }
+    
+    // Asegurar que la sección activa tenga la estructura correcta
+    const activeSection = ensureSectionStructure(state.sections[state.activeSectionId]);
+    if (activeSection && activeSection !== state.sections[state.activeSectionId]) {
+      return {
+        ...state,
+        sections: {
+          ...state.sections,
+          [state.activeSectionId]: activeSection
+        }
+      };
+    }
+    
+    return state;
+  };
+
   switch (action.type) {
     case 'CREATE_SECTION':
       const newSection = {
@@ -48,7 +118,6 @@ const editorReducer = (state, action) => {
 
     case 'DELETE_SECTION':
       if (action.payload.id === 'home') {
-        console.warn('Cannot delete home section');
         return state;
       }
       const { [action.payload.id]: deleted, ...remainingSections } = state.sections;
@@ -83,8 +152,24 @@ const editorReducer = (state, action) => {
       };
 
     case 'ADD_ELEMENT':
-      console.log('=== INICIO ADD_ELEMENT reducer ===');
-      console.log('Elementos actuales:', state.sections[state.activeSectionId]?.elements?.length || 0);
+      // Verificar que la sección activa existe
+      if (!state.sections[state.activeSectionId]) {
+        return state;
+      }
+      
+      // Asegurar que la sección tenga un array de elementos
+      if (!Array.isArray(state.sections[state.activeSectionId].elements)) {
+        return {
+          ...state,
+          sections: {
+            ...state.sections,
+            [state.activeSectionId]: {
+              ...state.sections[state.activeSectionId],
+              elements: []
+            }
+          }
+        };
+      }
       
       const newElement = {
         id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -96,9 +181,7 @@ const editorReducer = (state, action) => {
         styles: action.payload.styles || {},
       };
       
-      console.log('Agregando nuevo elemento:', newElement);
-      
-      const newState = {
+      return {
         ...state,
         sections: {
           ...state.sections,
@@ -111,13 +194,27 @@ const editorReducer = (state, action) => {
         history: [...state.history.slice(0, state.historyIndex + 1), state],
         historyIndex: state.historyIndex + 1,
       };
-      
-      console.log('Elementos después de agregar:', newState.sections[state.activeSectionId]?.elements?.length || 0);
-      console.log('=== FIN ADD_ELEMENT reducer ===');
-      
-      return newState;
 
     case 'UPDATE_ELEMENT':
+      // Verificar que la sección activa existe
+      if (!state.sections[state.activeSectionId]) {
+        return state;
+      }
+      
+      // Asegurar que la sección tenga un array de elementos
+      if (!Array.isArray(state.sections[state.activeSectionId].elements)) {
+        return {
+          ...state,
+          sections: {
+            ...state.sections,
+            [state.activeSectionId]: {
+              ...state.sections[state.activeSectionId],
+              elements: []
+            }
+          }
+        };
+      }
+      
       // Permitir reordenar todo el array de elementos
       if (action.payload.id === '__REORDER__' && action.payload.updates.elements) {
         return {
@@ -164,6 +261,25 @@ const editorReducer = (state, action) => {
       };
 
     case 'DELETE_ELEMENT':
+      // Verificar que la sección activa existe
+      if (!state.sections[state.activeSectionId]) {
+        return state;
+      }
+      
+      // Asegurar que la sección tenga un array de elementos
+      if (!Array.isArray(state.sections[state.activeSectionId].elements)) {
+        return {
+          ...state,
+          sections: {
+            ...state.sections,
+            [state.activeSectionId]: {
+              ...state.sections[state.activeSectionId],
+              elements: []
+            }
+          }
+        };
+      }
+      
       // Función recursiva para eliminar elementos (incluye elementos anidados)
       const deleteElementRecursive = (elements, id) => {
         return elements.filter(element => {
@@ -176,8 +292,6 @@ const editorReducer = (state, action) => {
           return true;
         });
       };
-      
-      console.log('Eliminando elemento:', action.payload.id);
       
       return {
         ...state,
@@ -200,7 +314,26 @@ const editorReducer = (state, action) => {
       };
 
     case 'MOVE_ELEMENT':
-      // Función recursiva para mover elementos (incluye elementos anidados)
+      // Verificar que la sección activa existe
+      if (!state.sections[state.activeSectionId]) {
+        return state;
+      }
+      
+      // Asegurar que la sección tenga un array de elementos
+      if (!Array.isArray(state.sections[state.activeSectionId].elements)) {
+        return {
+          ...state,
+          sections: {
+            ...state.sections,
+            [state.activeSectionId]: {
+              ...state.sections[state.activeSectionId],
+              elements: []
+            }
+          }
+        };
+      }
+      
+      // Función recursiva para mover elementos
       const moveElementRecursive = (elements, id, positionData) => {
         return elements.map(element => {
           if (element.id === id) {
@@ -241,6 +374,25 @@ const editorReducer = (state, action) => {
       };
 
     case 'RESIZE_ELEMENT':
+      // Verificar que la sección activa existe
+      if (!state.sections[state.activeSectionId]) {
+        return state;
+      }
+      
+      // Asegurar que la sección tenga un array de elementos
+      if (!Array.isArray(state.sections[state.activeSectionId].elements)) {
+        return {
+          ...state,
+          sections: {
+            ...state.sections,
+            [state.activeSectionId]: {
+              ...state.sections[state.activeSectionId],
+              elements: []
+            }
+          }
+        };
+      }
+      
       // Función recursiva para redimensionar elementos
       const resizeElementRecursive = (elements, id, size) => {
         return elements.map(element => {
@@ -266,6 +418,8 @@ const editorReducer = (state, action) => {
             elements: resizeElementRecursive(state.sections[state.activeSectionId].elements, action.payload.id, action.payload.size)
           }
         },
+        history: [...state.history.slice(0, state.historyIndex + 1), state],
+        historyIndex: state.historyIndex + 1,
       };
 
     case 'SET_ZOOM':
@@ -295,7 +449,6 @@ const editorReducer = (state, action) => {
       return state;
 
     case 'LOAD_TEMPLATE':
-      console.log('Cargando plantilla con elementos:', action.payload.elements);
       return {
         ...state,
         sections: {
@@ -310,19 +463,66 @@ const editorReducer = (state, action) => {
         historyIndex: state.historyIndex + 1,
       };
 
-    case 'LOAD_PROJECT':
-      console.log('Cargando proyecto completo:', action.payload.sections);
-      return {
+    case 'LOAD_PROJECT': {
+      console.log('🔄 EditorContext reducer LOAD_PROJECT: Procesando acción:', action);
+      const { sections, name, description, html_compilado, empresa, sucursal, id_sucursal, isServerPage, page_id } = action.payload;
+      
+      console.log('🔄 EditorContext reducer LOAD_PROJECT: Datos extraídos:', { sections: Object.keys(sections), name, description, empresa, sucursal, id_sucursal });
+      
+      // Asegurar que sections sea válido
+      let validSections = sections;
+      if (!sections || Object.keys(sections).length === 0) {
+        console.log('🔄 EditorContext reducer LOAD_PROJECT: No hay secciones, creando sección por defecto');
+        validSections = {
+          home: {
+            id: 'home',
+            name: 'Inicio',
+            elements: [],
+            isHome: true,
+            slug: 'home'
+          }
+        };
+      }
+      
+      // Asegurar que todas las secciones tengan la estructura correcta
+      Object.keys(validSections).forEach(sectionKey => {
+        if (!validSections[sectionKey].elements) {
+          validSections[sectionKey].elements = [];
+        }
+        if (!validSections[sectionKey].id) {
+          validSections[sectionKey].id = sectionKey;
+        }
+        if (!validSections[sectionKey].name) {
+          validSections[sectionKey].name = sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1);
+        }
+        if (!validSections[sectionKey].slug) {
+          validSections[sectionKey].slug = sectionKey;
+        }
+      });
+      
+      console.log('🔄 EditorContext reducer LOAD_PROJECT: Secciones validadas:', validSections);
+      
+      const finalState = {
         ...state,
-        sections: action.payload.sections,
-        activeSectionId: Object.keys(action.payload.sections)[0] || 'home',
-        selectedElementId: null,
-        history: [...state.history.slice(0, state.historyIndex + 1), state],
-        historyIndex: state.historyIndex + 1,
+        sections: validSections,
+        activeSectionId: 'home',
+        projectMetadata: {
+          id: action.payload.id,
+          name: name || 'Página sin nombre',
+          description: description || '',
+          empresa: empresa || '',
+          sucursal: sucursal || '',
+          id_sucursal: id_sucursal || null,
+          isServerPage: isServerPage || false,
+          page_id: page_id || null
+        }
       };
+      
+      console.log('✅ EditorContext reducer LOAD_PROJECT: Estado final preparado:', finalState);
+      return finalState;
+    }
 
     case 'CLEAR_CANVAS':
-      console.log('Limpiando canvas - eliminando todos los elementos');
       return {
         ...state,
         sections: {
@@ -344,12 +544,6 @@ const editorReducer = (state, action) => {
         canvasHeight: action.payload.height,
       };
 
-    case 'TOGGLE_GUIDES':
-      return {
-        ...state,
-        showGuides: !state.showGuides,
-      };
-
     case 'SET_SNAP_LINES':
       return {
         ...state,
@@ -359,7 +553,20 @@ const editorReducer = (state, action) => {
     case 'SET_CANVAS_BACKGROUND':
       return {
         ...state,
-        canvasBackground: action.payload,
+        canvasBackground: action.payload.color,
+      };
+
+    case 'INIT_HISTORY':
+      return {
+        ...state,
+        history: [action.payload],
+        historyIndex: 0,
+      };
+
+    case 'TOGGLE_GUIDES':
+      return {
+        ...state,
+        showGuides: !state.showGuides,
       };
 
     default:
@@ -390,14 +597,13 @@ function normalizeElements(elements) {
       props: el.props || {},
     };
     
-    console.log('Elemento normalizado:', normalizedElement);
     return normalizedElement;
   });
 }
 
 export const EditorProvider = ({ children }) => {
   const [state, dispatch] = useReducer(editorReducer, initialState);
-
+  
   // Sección functions
   const createSection = (name, slug) => {
     dispatch({
@@ -432,35 +638,24 @@ export const EditorProvider = ({ children }) => {
   const elements = currentSection ? currentSection.elements : [];
 
   const addElement = (type, props = {}, children = [], styles = {}, position, size) => {
-    console.log('=== INICIO addElement ===');
-    console.log('Agregando elemento:', { type, props, children, styles, position, size });
-    console.log('Estado actual antes de agregar:', state.sections[state.activeSectionId]?.elements?.length || 0);
+    // Crear el elemento directamente sin validaciones complejas
+    const newElement = {
+      id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type,
+      props: props || {},
+      children: children || [],
+      position: position || { x: 0, y: 0 },
+      size: size || { width: 'auto', height: 'auto' },
+      styles: styles || {},
+    };
     
-    // Prevenir múltiples llamadas simultáneas
-    if (window._addElementProcessing) {
-      console.log('addElement ya está siendo procesado, ignorando llamada');
-      return;
-    }
-    
-    try {
-      window._addElementProcessing = true;
-      
-      dispatch({
-        type: 'ADD_ELEMENT',
-        payload: { type, props, children, styles, position, size },
-      });
-      
-      console.log('=== FIN addElement ===');
-    } finally {
-      // Reset del flag después de un tiempo
-      setTimeout(() => {
-        window._addElementProcessing = false;
-      }, 1000);
-    }
+    dispatch({
+      type: 'ADD_ELEMENT',
+      payload: { type, props, children, styles, position, size },
+    });
   };
 
   const updateElement = (id, updates) => {
-    console.log('Actualizando elemento:', id, updates);
     dispatch({
       type: 'UPDATE_ELEMENT',
       payload: { id, updates },
@@ -468,7 +663,6 @@ export const EditorProvider = ({ children }) => {
   };
 
   const deleteElement = (id) => {
-    console.log('Eliminando elemento:', id);
     dispatch({
       type: 'DELETE_ELEMENT',
       payload: { id },
@@ -490,7 +684,6 @@ export const EditorProvider = ({ children }) => {
   };
 
   const selectElement = (id) => {
-    console.log('Seleccionando elemento:', id);
     dispatch({
       type: 'SELECT_ELEMENT',
       payload: { id },
@@ -519,17 +712,14 @@ export const EditorProvider = ({ children }) => {
   };
 
   const undo = () => {
-    console.log('Deshaciendo acción');
     dispatch({ type: 'UNDO' });
   };
 
   const redo = () => {
-    console.log('Rehaciendo acción');
     dispatch({ type: 'REDO' });
   };
 
   const loadTemplate = (template) => {
-    console.log('Cargando plantilla:', template);
     // Normalizar la estructura antes de cargarla
     const normalized = normalizeElements(template.elements || []);
     dispatch({
@@ -539,17 +729,55 @@ export const EditorProvider = ({ children }) => {
   };
 
   const loadProject = (project) => {
-    console.log('Cargando proyecto:', project);
-    if (project.sections) {
+    console.log('🔄 EditorContext loadProject: Iniciando carga del proyecto:', project);
+    
+    if (project && project.sections) {
+      console.log('🔄 EditorContext loadProject: Proyecto válido con secciones:', Object.keys(project.sections));
+      
+      // Asegurar que las secciones tengan la estructura correcta
+      const validSections = {};
+      Object.keys(project.sections).forEach(sectionKey => {
+        const section = project.sections[sectionKey];
+        validSections[sectionKey] = {
+          id: section.id || sectionKey,
+          name: section.name || sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1),
+          slug: section.slug || sectionKey,
+          elements: Array.isArray(section.elements) ? section.elements : [],
+          isHome: section.isHome || sectionKey === 'home'
+        };
+        console.log(`🔄 EditorContext loadProject: Sección "${sectionKey}" procesada:`, validSections[sectionKey]);
+      });
+      
+      // Si no hay secciones, crear una por defecto
+      if (Object.keys(validSections).length === 0) {
+        console.log('🔄 EditorContext loadProject: No hay secciones, creando sección por defecto');
+        validSections.home = {
+          id: 'home',
+          name: 'Inicio',
+          slug: 'home',
+          elements: [],
+          isHome: true
+        };
+      }
+      
+      console.log('🔄 EditorContext loadProject: Secciones finales preparadas:', validSections);
+      console.log('🔄 EditorContext loadProject: Despachando acción LOAD_PROJECT');
+      
       dispatch({
         type: 'LOAD_PROJECT',
-        payload: { sections: project.sections },
+        payload: { 
+          sections: validSections,
+          ...project // Incluir todos los metadatos del proyecto
+        },
       });
+      
+      console.log('✅ EditorContext loadProject: Proyecto cargado exitosamente');
+    } else {
+      console.error('❌ EditorContext loadProject: Proyecto inválido o sin secciones:', project);
     }
   };
 
   const clearCanvas = () => {
-    console.log('Limpiando canvas');
     dispatch({ type: 'CLEAR_CANVAS' });
   };
 
@@ -578,7 +806,6 @@ export const EditorProvider = ({ children }) => {
     if (element) {
       const elementCopy = JSON.stringify(element);
       localStorage.setItem('copiedElement', elementCopy);
-      console.log('Elemento copiado:', element);
     }
   };
 
@@ -588,12 +815,23 @@ export const EditorProvider = ({ children }) => {
     if (copiedElementData) {
       try {
         const copiedElement = JSON.parse(copiedElementData);
+        
+        // Calcular nueva posición evitando superposición pero permitiendo y: 0
+        let newY = (copiedElement.position?.y || 0);
+        if (newY === 0) {
+          // Si la posición original es 0, usar un pequeño offset
+          newY = 10;
+        } else {
+          // Si no es 0, agregar offset para evitar superposición
+          newY += 20;
+        }
+        
         const newElement = {
           ...copiedElement,
           id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           position: {
             x: (copiedElement.position?.x || 0) + 20,
-            y: (copiedElement.position?.y || 0) + 20
+            y: newY
           }
         };
         
@@ -605,8 +843,6 @@ export const EditorProvider = ({ children }) => {
           newElement.position,
           newElement.size || { width: 'auto', height: 'auto' }
         );
-        
-        console.log('Elemento pegado:', newElement);
       } catch (error) {
         console.error('Error al pegar elemento:', error);
       }
@@ -617,12 +853,23 @@ export const EditorProvider = ({ children }) => {
   const duplicateElement = (id) => {
     const element = findElementById(elements, id);
     if (element) {
+      
+      // Calcular nueva posición evitando superposición pero permitiendo y: 0
+      let newY = (element.position?.y || 0);
+      if (newY === 0) {
+        // Si la posición original es 0, usar un pequeño offset
+        newY = 10;
+      } else {
+        // Si no es 0, agregar offset para evitar superposición
+        newY += 20;
+      }
+      
       const newElement = {
         ...element,
         id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         position: {
           x: (element.position?.x || 0) + 20,
-          y: (element.position?.y || 0) + 20
+          y: newY
         }
       };
       
@@ -634,8 +881,6 @@ export const EditorProvider = ({ children }) => {
         newElement.position,
         newElement.size || { width: 'auto', height: 'auto' }
       );
-      
-      console.log('Elemento duplicado:', newElement);
     }
   };
 
@@ -643,15 +888,16 @@ export const EditorProvider = ({ children }) => {
 
   // Event listener para cargar plantillas desde App.jsx
   useEffect(() => {
+    
     const handleLoadTemplate = (event) => {
       const { template } = event.detail;
-      console.log('Evento de carga de plantilla recibido:', template);
       loadTemplate(template);
     };
 
     const handleLoadProject = (event) => {
+      console.log('🔄 EditorContext: Evento loadProject recibido:', event);
       const { project } = event.detail;
-      console.log('Evento de carga de proyecto recibido:', project);
+      console.log('🔄 EditorContext: Proyecto extraído:', project);
       loadProject(project);
     };
 
@@ -712,9 +958,7 @@ export const EditorProvider = ({ children }) => {
       window.removeEventListener('loadProject', handleLoadProject);
       document.removeEventListener('keydown', handleKeyboardShortcuts);
     };
-  }, [state.selectedElementId, copyElement, pasteElement, duplicateElement, deleteElement, undo, redo]);
-
-  // Código del header automático eliminado completamente
+  }, []);
 
   const value = {
     ...state,
@@ -756,7 +1000,9 @@ export const EditorProvider = ({ children }) => {
 export const useEditor = () => {
   const context = useContext(EditorContext);
   if (!context) {
-    throw new Error('useEditor must be used within an EditorProvider');
+    console.error('🧪 ❌ useEditor debe ser usado dentro de EditorProvider');
+    throw new Error('useEditor debe ser usado dentro de EditorProvider');
   }
+  
   return context;
 }; 

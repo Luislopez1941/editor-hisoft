@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import useUserStore from '../../store/General';
 import APIs from '../../services/services/APIs';
+import { useEditor } from '../../context/EditorContext';
 
 const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos', subtitle = 'Explora nuestra selección de productos' }) => {
   const [selectedFamilia, setSelectedFamilia] = useState(null);
@@ -18,6 +19,9 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
   const [modalActiveIndex, setModalActiveIndex] = useState(null);
   const [modalCurrentImageIndex, setModalCurrentImageIndex] = useState(0);
   const { url_img } = useUserStore();
+  
+  // Obtener el contexto del editor para acceder al id_sucursal
+  const { projectMetadata } = useEditor();
 
   const userId = 3; // Mock user ID - you can replace this with real user ID
   const [families, setFamilies] = useState([]);
@@ -42,7 +46,17 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
   const loadFamilies = async () => {
     try {
       setLoading(true);
-             const familiesData = await APIs.getFamilies(userId);
+      
+      // Usar id_sucursal del contexto del editor si está disponible, sino usar userId como fallback
+      const sucursalId = projectMetadata?.id_sucursal || userId;
+      
+      console.log('🔄 CatalogSection: Cargando familias con:', {
+        sucursalId,
+        projectMetadata: projectMetadata,
+        fallbackUserId: userId
+      });
+      
+      const familiesData = await APIs.getFamilies(sucursalId);
       familiesData.unshift({ id: 0, nombre: 'Todas las Familias' });
       setFamilies(familiesData);
 
@@ -90,6 +104,17 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
   const loadProducts = async (familiaId, collectionId, pageNumber) => {
     try {
       setLoading(true);
+      
+      // Usar id_sucursal del contexto del editor si está disponible, sino usar userId como fallback
+      const sucursalId = projectMetadata?.id_sucursal || userId;
+      
+      console.log('🔄 CatalogSection: Cargando productos con:', {
+        sucursalId,
+        familiaId,
+        collectionId,
+        pageNumber
+      });
+      
       const data = {
         id: 0,
         activos: true,
@@ -110,7 +135,7 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
         get_unidades: false,
         for_vendedor: true,
         page: pageNumber,
-        id_usuario: userId,
+        id_usuario: 106, // Valor fijo para id_usuario
         light: true,
         no_resultados: 50
       };
@@ -131,6 +156,10 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
   const loadProductsByCodeOrDesc = async (input, numberPage) => {
     try {
       setLoading(true);
+      
+      // Usar id_sucursal del contexto del editor si está disponible, sino usar userId como fallback
+      const sucursalId = projectMetadata?.id_sucursal || userId;
+      
       const data = {
         id: 0,
         activos: true,
@@ -151,7 +180,7 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
         get_unidades: false,
         for_vendedor: true,
         page: numberPage,
-        id_usuario: userId,
+        id_usuario: 106, // Valor fijo para id_usuario
         light: true,
         no_resultados: 50
       };
@@ -172,7 +201,18 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
   };
   useEffect(() => {
     loadFamilies();
-  }, [userId]);
+  }, [projectMetadata?.id_sucursal]); // Cambiado de [userId] a [projectMetadata?.id_sucursal]
+  
+  // Monitorear cambios en projectMetadata para debugging
+  useEffect(() => {
+    if (projectMetadata?.id_sucursal) {
+      console.log('🔄 CatalogSection: projectMetadata actualizado:', {
+        id_sucursal: projectMetadata.id_sucursal,
+        empresa: projectMetadata.empresa,
+        sucursal: projectMetadata.sucursal
+      });
+    }
+  }, [projectMetadata]);
   
   // Ensure inputs work in canvas
   useEffect(() => {
@@ -242,6 +282,15 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
     setModalCurrentImageIndex(0);
     setIsModalOpen(true);
     
+    // Usar id_sucursal del contexto del editor si está disponible, sino usar userId como fallback
+    const sucursalId = projectMetadata?.id_sucursal || userId;
+    
+    console.log('🔄 CatalogSection handleViewProduct: Usando sucursalId:', {
+      sucursalId,
+      projectMetadata: projectMetadata,
+      fallbackUserId: userId
+    });
+    
     const data = {
       id: product.id,
       activos: true,
@@ -264,7 +313,7 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
       get_web: false,
       for_ventas: true,
       get_unidades: true,
-      id_usuario: userId,
+      id_usuario: 106, // Valor fijo para id_usuario
       id_grupo_us: false
     };
     
@@ -380,6 +429,15 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
   
   // Función para buscar artículo por combinaciones
   const fetch2 = async (selectedIds) => {
+    // Usar id_sucursal del contexto del editor si está disponible, sino usar userId como fallback
+    const sucursalId = projectMetadata?.id_sucursal || userId;
+    
+    console.log('🔄 CatalogSection fetch2: Usando sucursalId:', {
+      sucursalId,
+      projectMetadata: projectMetadata,
+      fallbackUserId: userId
+    });
+    
     const data = {
       id: 0,
       activos: true,
@@ -402,7 +460,7 @@ const ProductCatalog = ({ isPreviewMode = false, title = 'Catálogo de Productos
       get_web: false,
       for_ventas: true,
       get_unidades: true,
-      id_usuario: userId,
+      id_usuario: 106, // Valor fijo para id_usuario
       por_combinacion: true,
       opciones: selectedIds,
       id_articulo_variacion: modalArticle.id

@@ -1,4 +1,5 @@
 import ConfigurationAPIs from '../api/ConfigurationAPIs';
+import axios from "axios";
 
 const APIs = {
 
@@ -15,22 +16,48 @@ const APIs = {
     return ConfigurationAPIs.post(path, data)
   },
 
- 
 
   createPage: async (data, customPath) => {
     const path = customPath || 'pagina_cliente/create';
     return ConfigurationAPIs.post(path, data)
   },
 
-  updatePage: async (data, customPath) => {
-    const path = customPath || 'pagina_cliente/updatePagina';
+  savePage: async (data, customPath) => {
+    const path = customPath || 'guardarPagina';
     return ConfigurationAPIs.post(path, data)
   },
-  
+
+
+
   getPage: async (id: string) => {
     const path = `pagina_cliente/get/${id}`;
     return ConfigurationAPIs.get(path)
   },
+
+  getPageByBranch: async (id_sucursal: string) => {
+    const path = `getPaginaCompletaxSucursal/${id_sucursal}`;
+    return ConfigurationAPIs.get(path)
+  },
+
+
+
+savePagePhp: async (data) => {
+  const url = "http://hiplot.dyndns.org:84/cotizador_api/index.php/mantenimiento/FtpClientUpload";
+  try {
+    const response = await axios.post(url, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error al enviar datos al endpoint:", error);
+    throw error;
+  }
+},
+
+
+
+
+
+
+
 
 
   getCompaniesXUsers: async (id: number, customPath?: string) => {
@@ -38,7 +65,7 @@ const APIs = {
     return ConfigurationAPIs.get(path);
   },
 
-  getBranchOfficesXCompanies: async ( empresa_id : number, id_usuario : number, customPath?: string) => {
+  getBranchOfficesXCompanies: async (empresa_id: number, id_usuario: number, customPath?: string) => {
     const path = customPath || `get_sucursal_x_empresa/${empresa_id}/${id_usuario}`
     return ConfigurationAPIs.get(path)
   },
@@ -59,7 +86,7 @@ const APIs = {
     return ConfigurationAPIs.post(path, data)
   },
 
-  
+
 
 
   getCollectionByFamily: async (familyId: number, customPath?: string) => {
@@ -79,8 +106,8 @@ const APIs = {
     return ConfigurationAPIs.post(path, data)
   },
 
-  getFamilies: async (id: number, customPath?: string) => {
-    const path = customPath || `familia_get/${id}`
+  getFamilies: async (id_sucursal: number, customPath?: string) => {
+    const path = customPath || `familia_get_for_web/${id_sucursal}`
     return ConfigurationAPIs.get(path)
   },
 

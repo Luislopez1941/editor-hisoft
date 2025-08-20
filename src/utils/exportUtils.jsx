@@ -1,7 +1,14 @@
 // Utility functions for exporting multi-section websites
 
-export const generateSectionHTML = (section, allSections) => {
+export const generateSectionHTML = (section, allSections, sucursalId = null) => {
   const { elements } = section;
+  
+  console.log('🔄 generateSectionHTML: Procesando sección:', section.id, 'con', elements?.length || 0, 'elementos');
+
+  // Helper function to convert camelCase to kebab-case
+  const camelToKebab = (str) => {
+    return str.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase();
+  };
 
   const elementToHTML = (element) => {
     const { type, props, styles, children } = element;
@@ -189,7 +196,8 @@ export const generateSectionHTML = (section, allSections) => {
       case 'catalog-section':
         const catalogTitle = props?.title || 'Catálogo de Productos';
         const catalogSubtitle = props?.subtitle || 'Explora nuestra selección de productos';
-        const catalogId = `catalog-${Math.random().toString(36).substr(2, 9)}`;
+
+        console.log('🔄 elementToHTML: Procesando catalog-section con props:', props);
 
         // For catalog sections, ensure proper positioning and override any conflicting styles
         // Use the actual position values from the element
@@ -199,6 +207,8 @@ export const generateSectionHTML = (section, allSections) => {
         const catalogHeight = size.height || 'auto';
 
         const catalogStyles = `position: absolute; left: ${catalogPositionX}px; top: ${catalogPositionY}px; width: ${catalogWidth}; height: ${catalogHeight}; z-index: 1;`;
+
+        console.log('🔄 elementToHTML: Catalog-section generado exitosamente');
 
         return `
           <div id="catalog" style="${fullStyles}">
@@ -253,13 +263,13 @@ export const generateSectionHTML = (section, allSections) => {
                       <div style="padding: 16px 24px;">
                         <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;">
                           <!-- Search Controls -->
-                          <div class="productCatalog-search-container" style="display: flex; flex-direction: column; gap: 12px;">
+                          <div class="productCatalog-search-container" style="display: flex; flex-direction: direction: column; gap: 12px;">
                             <div class="search-row" style="display: flex; gap: 12px; flex-wrap: wrap;">
                               <div class="search-input-container" style="flex: 1; min-width: 200px;">
                                 <input type="text" placeholder="Buscar productos..." id="product-search" class="productCatalog-search-input" style="width: 100%; padding: 8px 16px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; background-color: white; outline: none;" />
                         </div>
                               <div class="search-select-container" style="min-width: 150px;">
-                                <select id="search-type" class="inputs__general" style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; background-color: white; outline: none;">
+                                <select id="search-type" class="inputs__general" style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size:14px; background-color: white; outline: none;">
                             <option value="0">Por Descripción</option>
                             <option value="1">Codigo</option>
                           </select>
@@ -298,28 +308,21 @@ export const generateSectionHTML = (section, allSections) => {
                       </div>
                     </div>
                         <div class="productCatalog-no-products" id="no-products" style="text-align: center; padding: 64px 0; display: none;">
-                          <h3 style="color: #6b7280; font-size: 18px; margin-bottom: 8px;">No se encontraron productos</h3>
-                          <p style="color: #9ca3af; font-size: 14px;">Intenta ajustar tus filtros o términos de búsqueda</p>
-                      </div>
-                      </div>
-                      <!-- Pagination Controls -->
-                      <div id="pagination" style="display: flex; justify-content: center; gap: 8px; margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6; display: none;">
-                        <div class="pagination-row" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                          <div class="pagination-btn-container">
-                            <button id="prev-btn" class="btn__general-primary" disabled style="padding: 6px 16px; background-color: #f3f4f6; color: #9ca3af; border-radius: 6px; font-size: 14px; border: none; cursor: not-allowed; opacity: 0.5; transition: all 0.2s;">
-                              ANTERIOR
-                            </button>
+                          <div style="display: inline-flex; align-items: center; padding: 8px 16px; font-size: 14px; color: #6b7280;">
+                            <svg style="margin-right: 12px; width: 20px; height: 20px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                              <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            No se encontraron productos
                           </div>
-                          <div class="pagination-info-container">
-                            <span id="page-info" style="padding: 6px 12px; font-size: 14px; color: #6b7280; background-color: #f9fafb; border-radius: 6px;">
-                              Página 1
-                            </span>
-                      </div>
-                      <div class="col-1">
-                          <button id="next-btn" class="btn__general-primary" style="padding: 6px 16px; background-color: #e0241b; color: white; border-radius: 6px; font-size: 14px; border: none; cursor: pointer; transition: all 0.2s;">
-                            SIGUIENTE
-                          </button>
                         </div>
+                      </div>
+                      
+                      <!-- Pagination -->
+                      <div class="productCatalog-pagination" style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 24px;">
+                        <button id="prev-page" class="pagination-btn" style="padding: 8px 16px; border: 1px solid #d1d5db; background: white; color: #374151; border-radius: 6px; cursor: pointer; font-size: 14px; display: none;">Anterior</button>
+                        <span id="page-info" style="font-size: 14px; color: #6b7280;">Página 1</span>
+                        <button id="next-page" class="pagination-btn" style="padding: 8px 16px; border: 1px solid #d1d5db; background: white; color: #374151; border-radius: 6px; cursor: pointer; font-size: 14px; display: none;">Siguiente</button>
                       </div>
                     </div>
                   </div>
@@ -327,10 +330,13 @@ export const generateSectionHTML = (section, allSections) => {
               </div>
             </div>
           </div>
+          
           <script>
-            // Catalog Functionality for catalog
             (function() {
-              const catalogId = 'catalog';
+              console.log('🚀 Catálogo exportado: JavaScript iniciando...');
+              console.log('🚀 Catálogo exportado: Verificando elementos del DOM...');
+              
+              // Variables globales del catálogo
               let selectedFamilia = null;
               let selectedCollection = null;
               let currentPage = 1;
@@ -345,8 +351,24 @@ export const generateSectionHTML = (section, allSections) => {
                 collections: false,
                 products: false
               };
-              const userId = 3;
+              // Usar el sucursalId que se pasa desde generateFullWebsite, sino usar 106 como fallback
+              const userId = 106; // Valor fijo para id_usuario
+              const sucursalId = ${sucursalId || 106}; // id_sucursal para getFamilies - se pasa desde generateFullWebsite
               const url_img = 'http://hiplot.dyndns.org:84/';
+              const apiBaseUrl = 'http://hiplot.dyndns.org:84/api_dev_mode';
+              
+              console.log('🔄 Catálogo exportado: Usando userId (id_usuario):', userId);
+              console.log('🔄 Catálogo exportado: Usando sucursalId para familias:', sucursalId);
+              console.log('🔄 Catálogo exportado: API Base URL:', apiBaseUrl);
+              console.log('🔄 Catálogo exportado: NOTA: Todas las peticiones usarán id_usuario: 106');
+              
+              // Verificar que sucursalId esté definido
+              if (typeof sucursalId === 'undefined') {
+                console.error('❌ ERROR: sucursalId no está definido en el catálogo exportado');
+                console.error('❌ Valor de sucursalId:', sucursalId);
+              } else {
+                console.log('✅ sucursalId está correctamente definido:', sucursalId);
+              }
               
               // Loading state management
               function setLoading(isLoading, type) {
@@ -378,19 +400,19 @@ export const generateSectionHTML = (section, allSections) => {
                 }
               }
               
-              async function getFamilies(userId) {
-                
-                return await fetchData('http://hiplot.dyndns.org:84/api_dev/familia_get/' + userId);
+              async function getFamilies(id_sucursal) {
+                console.log('🔄 Catálogo exportado getFamilies: Usando id_sucursal:', id_sucursal);
+                return await fetchData('http://hiplot.dyndns.org:84/api_dev_mode/familia_get_for_web/' + id_sucursal);
               }
               
               async function getCollectionByFamily(familyId) {
                 
-                return await fetchData('http://hiplot.dyndns.org:84/api_dev/get_colecciones_x_familia/' + familyId);
+                return await fetchData('http://hiplot.dyndns.org:84/api_dev_mode/get_colecciones_x_familia/' + familyId);
               }
               
               async function getArticlesForVendedor(data) {
                 
-                return await fetchData('http://hiplot.dyndns.org:84/api_dev/articulos_get_for_vendedor', {
+                return await fetchData('http://hiplot.dyndns.org:84/api_dev_mode/articulos_get_for_vendedor', {
                   method: 'POST',
                   body: JSON.stringify(data)
                 });
@@ -399,10 +421,11 @@ export const generateSectionHTML = (section, allSections) => {
               // Load Families
               async function loadFamilies() {
                 try {
-                  
+                  console.log('🔄 Catálogo exportado loadFamilies: Iniciando con id_sucursal:', sucursalId);
                   setLoading(true, 'families');
-                  const familiesData = await getFamilies(userId);
+                  const familiesData = await getFamilies(sucursalId);
                   
+                  console.log('🔄 Catálogo exportado loadFamilies: Familias recibidas:', familiesData);
                   
                   if (familiesData && Array.isArray(familiesData)) {
                     families = familiesData;
@@ -506,11 +529,12 @@ export const generateSectionHTML = (section, allSections) => {
                     get_unidades: false,
                     for_vendedor: true,
                     page: pageNumber,
-                    id_usuario: userId,
+                    id_usuario: 106, // Valor fijo para id_usuario
                     light: true,
                     no_resultados: 50
                   };
                   
+                  console.log('🔄 Catálogo exportado loadProducts: Enviando id_usuario:', data.id_usuario);
                   
                   const result = await getArticlesForVendedor(data);
                   
@@ -553,10 +577,12 @@ export const generateSectionHTML = (section, allSections) => {
                     get_unidades: false,
                     for_vendedor: true,
                     page: numberPage,
-                    id_usuario: userId,
+                    id_usuario: 106, // Valor fijo para id_usuario
                     light: true,
                     no_resultados: 50
                   };
+                  
+                  console.log('🔄 Catálogo exportado loadProductsByCodeOrDesc: Enviando id_usuario:', data.id_usuario);
                   
                   const result = await getArticlesForVendedor(data);
                   products = result.data || result || [];
@@ -574,20 +600,21 @@ export const generateSectionHTML = (section, allSections) => {
               
               // Render Functions
               function renderFamilies() {
-                
+                console.log('🔄 renderFamilies: Iniciando renderizado');
+                console.log('🔄 renderFamilies: Familias disponibles:', families);
+                console.log('🔄 renderFamilies: Estado de loading:', loading.families);
                 
                 const familiesContainer = document.getElementById('families');
                 const loadingElement = document.getElementById('families-loading');
                 
-                
-                
+                console.log('🔄 renderFamilies: Contenedor encontrado:', familiesContainer);
+                console.log('🔄 renderFamilies: Elemento de loading encontrado:', loadingElement);
                 
                 if (loading.families) {
-                  
+                  console.log('🔄 renderFamilies: Mostrando loading');
                   if (loadingElement) loadingElement.style.display = 'block';
                   return;
                 }
-                
                 
                 if (loadingElement) loadingElement.style.display = 'none';
                 
@@ -604,8 +631,7 @@ export const generateSectionHTML = (section, allSections) => {
                   familia.nombre.toLowerCase().includes(searchFamiliaTerm.toLowerCase())
                 );
                 
-                
-                
+                console.log('🔄 renderFamilies: Familias filtradas:', filteredFamilies);
                 
                 filteredFamilies.forEach(familia => {
                   const isActive = selectedFamilia === familia.id;
@@ -615,19 +641,23 @@ export const generateSectionHTML = (section, allSections) => {
                   '</div>';
                 });
                 
-                
+                console.log('🔄 renderFamilies: HTML generado:', familiesHTML);
                 familiesContainer.innerHTML = familiesHTML;
                 addFamiliaEventListeners();
                 
+                console.log('🔄 renderFamilies: Renderizado completado');
               }
               
               function renderCollections() {
+                console.log('🔄 renderCollections: Iniciando renderizado');
+                console.log('🔄 renderCollections: Colecciones disponibles:', collections);
+                console.log('🔄 renderCollections: Estado de loading:', loading.collections);
+                
                 const collectionsContainer = document.getElementById('collections');
                 const loadingElement = document.getElementById('collections-loading');
                 
-                
-                
-                
+                console.log('🔄 renderCollections: Contenedor encontrado:', collectionsContainer);
+                console.log('🔄 renderCollections: Elemento de loading encontrado:', loadingElement);
                 
                 if (!collectionsContainer) {
                   console.error('Collections container no encontrado');
@@ -646,10 +676,7 @@ export const generateSectionHTML = (section, allSections) => {
                   return;
                 }
                 
-                if (loadingElement) {
-                  loadingElement.style.display = 'none';
-                }
-                
+                if (loadingElement) loadingElement.style.display = 'none';
                 
                 let collectionsHTML = '';
                 
@@ -660,22 +687,31 @@ export const generateSectionHTML = (section, allSections) => {
                   '</button>';
                 });
                 
-                
+                console.log('🔄 renderCollections: HTML generado:', collectionsHTML);
                 collectionsContainer.innerHTML = collectionsHTML;
                 addCollectionEventListeners();
+                
+                console.log('🔄 renderCollections: Renderizado completado');
               }
               
               function renderProducts() {
+                console.log('🔄 renderProducts: Iniciando renderizado');
+                console.log('🔄 renderProducts: Productos disponibles:', filteredProducts);
+                console.log('🔄 renderProducts: Estado de loading:', loading.products);
+                
                 const productsGrid = document.getElementById('products-grid');
                 const productsCount = document.getElementById('products-count');
                 const productsLoading = document.getElementById('products-loading');
                 const noProducts = document.getElementById('no-products');
                 const pagination = document.getElementById('pagination');
-                const productsTitle = document.querySelector('#' + catalogId + ' .productCatalog-products-title');
+                const productsTitle = document.querySelector('#catalog .productCatalog-products-title');
                 
-                
-                
-                
+                console.log('🔄 renderProducts: Contenedor de productos encontrado:', productsGrid);
+                console.log('🔄 renderProducts: Contador de productos encontrado:', productsCount);
+                console.log('🔄 renderProducts: Elemento de loading encontrado:', productsLoading);
+                console.log('🔄 renderProducts: Elemento de no productos encontrado:', noProducts);
+                console.log('🔄 renderProducts: Paginación encontrada:', pagination);
+                console.log('🔄 renderProducts: Título encontrado:', productsTitle);
                 
                 if (!productsGrid) {
                   console.error('Products grid no encontrado');
@@ -695,9 +731,6 @@ export const generateSectionHTML = (section, allSections) => {
                 }
                 
                 if (productsLoading) productsLoading.style.display = 'none';
-                
-                
-                
                 
                 if (filteredProducts.length === 0) {
                   if (noProducts) noProducts.style.display = 'block';
@@ -726,16 +759,18 @@ export const generateSectionHTML = (section, allSections) => {
                       '<div class="product-actions" style="display: flex; gap: 8px; margin-top: 12px;">' +
                         '<button class="view-product-btn" data-product-id="' + (product.id || product.codigo || index) + '" onclick="handleViewProductClick(event, ' + JSON.stringify(product.id || product.codigo || index) + ')" style="flex: 1; padding: 8px 12px; background-color: #e0241b; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Ver Detalles</button>' +
                       '</div>' +
-                      (product.desabasto ? '<div class="desabasto" style="display: inline-block; padding: 2px 6px; font-size: 12px; font-weight: 500; background-color: #fee2e2; color: #dc2626; border-radius: 4px; margin-top: 4px;"><small>Agotado</small></div>' : '') +
+                      (product.desabasto ? '<div class="desabasto" style="display: inline-block; padding: 2px 6px; font-size: 12px; font-weight: 500; background-color: #fee2e2; color: #dc2626; border-radius: 4px; margin-top: 4px;"><small>Agotado</small></small></div>' : '') +
                       (product.ultimas_piezas ? '<div class="ultima-piezas" style="display: inline-block; padding: 2px 6px; font-size: 12px; font-weight: 500; background-color: #fef3c7; color: #d97706; border-radius: 4px; margin-top: 4px;"><small>Últimas</small></div>' : '') +
                     '</div>' +
                   '</div>';
                 });
                 
-                
+                console.log('🔄 renderProducts: HTML generado para', filteredProducts.length, 'productos');
                 productsGrid.innerHTML = productsHTML;
                 updatePagination();
                 addViewButtonsEventListeners();
+                
+                console.log('🔄 renderProducts: Renderizado completado');
               }
               
               function updatePagination() {
@@ -967,7 +1002,7 @@ export const generateSectionHTML = (section, allSections) => {
                   get_web: false,
                   for_ventas: true,
                   get_unidades: true,
-                  id_usuario: userId,
+                  id_usuario: 106, // Valor fijo para id_usuario
                   id_grupo_us: false
                 };
                 
@@ -1006,7 +1041,7 @@ export const generateSectionHTML = (section, allSections) => {
                 
                 // Load images
                 try {
-                  const imgResponse = await fetch('http://hiplot.dyndns.org:84/api_dev/articulo_imagenes_get/' + article.id);
+                  const imgResponse = await fetch('http://hiplot.dyndns.org:84/api_dev_mode/articulo_imagenes_get/' + article.id);
                   const imgResult = await imgResponse.json();
                   modalImgs = imgResult || [];
                 } catch (error) {
@@ -1098,7 +1133,7 @@ export const generateSectionHTML = (section, allSections) => {
                   get_web: false,
                   for_ventas: true,
                   get_unidades: true,
-                  id_usuario: userId,
+                  id_usuario: 106,
                   por_combinacion: true,
                   opciones: selectedIds,
                   id_articulo_variacion: modalArticle.id
@@ -1127,7 +1162,7 @@ export const generateSectionHTML = (section, allSections) => {
                     
                     // Recargar imágenes del nuevo artículo
                     try {
-                      const imgResponse = await fetch('http://hiplot.dyndns.org:84/api_dev/articulo_imagenes_get/' + newArticle.id);
+                      const imgResponse = await fetch('http://hiplot.dyndns.org:84/api_dev_mode/articulo_imagenes_get/' + newArticle.id);
                       const imgResult = await imgResponse.json();
                       modalImgs = imgResult || [];
                     } catch (error) {
@@ -1452,12 +1487,25 @@ export const generateSectionHTML = (section, allSections) => {
   `;
 };
 
-export const generateFullWebsite = (sections, activeSection = 'home') => {
+export const generateFullWebsite = (sections, activeSection = 'home', id_sucursal = null) => {
   const sectionsArray = Object.values(sections);
   const homeSection = sectionsArray.find(s => s.isHome) || sectionsArray[0];
 
+  // Usar id_sucursal si está disponible, sino usar el userId hardcodeado como fallback
+  const sucursalId = id_sucursal || 106;
+  
+  console.log('🔄 generateFullWebsite: Usando sucursalId para catálogo:', {
+    sucursalId,
+    id_sucursal,
+    fallbackUserId: 106,
+    note: 'El catálogo usará siempre id_usuario: 106'
+  });
+  
+  console.log('🔄 generateFullWebsite: id_sucursal que se pasará al catálogo:', id_sucursal);
+  console.log('🔄 generateFullWebsite: Generando HTML con secciones:', sectionsArray.length);
+
   const sectionsHTML = sectionsArray.map(section =>
-    generateSectionHTML(section, sections)
+    generateSectionHTML(section, sections, sucursalId)
   ).join('');
 
   return `<!DOCTYPE html>
@@ -2745,10 +2793,13 @@ export const generateFullWebsite = (sections, activeSection = 'home') => {
     </script>
 </body>
 </html>`;
+  
+  console.log('🔄 generateFullWebsite: HTML generado exitosamente');
+  return `<!DOCTYPE html>`;
 };
 
-export const downloadWebsite = (sections, filename = 'mi-sitio-web.html') => {
-  const html = generateFullWebsite(sections);
+export const downloadWebsite = (sections, filename = 'mi-sitio-web.html', id_sucursal = null) => {
+  const html = generateFullWebsite(sections, 'home', id_sucursal);
   const blob = new Blob([html], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
 
@@ -2760,8 +2811,8 @@ export const downloadWebsite = (sections, filename = 'mi-sitio-web.html') => {
   URL.revokeObjectURL(url);
 };
 
-export const previewWebsite = (sections) => {
-  const html = generateFullWebsite(sections);
+export const previewWebsite = (sections, id_sucursal = null) => {
+  const html = generateFullWebsite(sections, 'home', id_sucursal);
   const newWindow = window.open('', '_blank');
   newWindow.document.write(html);
   newWindow.document.close();

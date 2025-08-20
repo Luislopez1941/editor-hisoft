@@ -88,6 +88,7 @@ const RootPage = () => {
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'editor'
 
   const handleSwitchToWebsiteManager = (type, template) => {
+    
     if (type === 'edit') {
       setCurrentView('editor');
     } else if (type === 'load-project') {

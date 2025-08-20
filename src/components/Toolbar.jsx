@@ -33,7 +33,8 @@ import {
   Minimize2,
   FileText,
   Grid3X3,
-  ExternalLink
+  ExternalLink,
+  Upload
 } from 'lucide-react';
 import { useEditor } from '../context/EditorContext';
 import { downloadWebsite, previewWebsite, generateFullWebsite } from '../utils/exportUtils.jsx';
@@ -310,7 +311,8 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
     canvasBackground,
     setCanvasBackground,
     sections,
-    currentSection
+    currentSection,
+    projectMetadata
   } = useEditor();
 
   // Estados para dropdowns
@@ -379,31 +381,37 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
         return;
       }
 
+      // Verificar que tenemos la información necesaria para guardar
+      if (!projectMetadata?.id_sucursal) {
+        showNotification('No se puede guardar: falta información de la sucursal. Asegúrate de cargar un proyecto del servidor.', 'error');
+        return;
+      }
+
       // Generar el HTML completo
-      const fullWebsiteHtml = generateFullWebsite(sections);
+      const fullWebsiteHtml = generateFullWebsite(sections, 'home', projectMetadata.id_sucursal);
       const fullWebsiteJson = JSON.stringify(sections);
 
-      // Preparar datos para la API
+      // Preparar datos para la API savePage
       const apiData = {
-        nombre: 'Pagina MG',
-        descripcion: 'Proyecto guardado desde el editor web',
-        contenido: fullWebsiteJson, // Enviar el JSON
-        contenido_html: fullWebsiteHtml, // Enviar el HTML
-        fecha_creacion: new Date().toISOString(),
-        fecha_actualizacion: new Date().toISOString(),
-        estado: 'activo'
+        contenido_html: fullWebsiteHtml, // HTML completo generado
+        contenido: fullWebsiteJson, // JSON de las secciones como string
+        nombre: projectMetadata.sucursal || 'Pagina MG', // Nombre de la sucursal
+        id_sucursal: projectMetadata.id_sucursal, // ID de la sucursal del contexto
+        fecha_actualizacion: new Date().toISOString() // Fecha de actualización
       };
 
-      console.log('2. Datos preparados para API:', apiData);
+      console.log('2. Datos preparados para API savePage:', apiData);
+      console.log('3. Metadatos del proyecto:', projectMetadata);
       
-      // Llamar a la API
+      // Llamar a la API savePage
       try {
-        const apiResponse = await APIs.createPage(apiData);
+        const apiResponse = await APIs.savePage(apiData);
         showNotification('Página guardada exitosamente en el servidor', 'success');
+        console.log('Respuesta de savePage:', apiResponse);
    
         
       } catch (apiError) {
-        console.error('5. Error al guardar en API:', apiError);
+        console.error('5. Error al guardar en API savePage:', apiError);
         showNotification('Error al guardar en el servidor: ' + apiError.message, 'error');
         return; // No continuar si falla el guardado en API
       }
@@ -531,12 +539,116 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
   };
 
   const handleExportHTML = () => {
-    downloadWebsite(sections, 'mi-sitio-web.html');
-    console.log('Sitio web multi-sección exportado exitosamente');
+    // Usar id_sucursal del contexto del editor si está disponible, sino usar null (que usará el fallback)
+    const sucursalId = projectMetadata?.id_sucursal || null;
+    downloadWebsite(sections, 'mi-sitio-web.html', sucursalId);
+    console.log('Sitio web multi-sección exportado exitosamente con id_sucursal:', sucursalId);
   };
 
   const handlePreviewWebsite = () => {
-    previewWebsite(sections);
+    // Usar id_sucursal del contexto del editor si está disponible, sino usar null (que usará el fallback)
+    const sucursalId = projectMetadata?.id_sucursal || null;
+    previewWebsite(sections, sucursalId);
+  };
+
+  const handleImportJSON = () => {
+    console.log('🔄 Iniciando importación JSON...');
+    
+    // Crear un input de archivo oculto
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json';
+    fileInput.style.display = 'none';
+    
+    fileInput.onchange = async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      console.log('🔄 Archivo seleccionado:', file.name);
+      
+      try {
+        const text = await file.text();
+        const projectData = JSON.parse(text);
+        
+        console.log('🔄 JSON parseado:', projectData);
+        console.log('🔄 Secciones encontradas:', Object.keys(projectData.sections || {}));
+        
+        // Validar que el archivo tenga la estructura correcta
+        if (!projectData.sections || typeof projectData.sections !== 'object') {
+          showNotification('El archivo JSON no tiene la estructura correcta. Debe contener un objeto "sections".', 'error');
+          return;
+        }
+        
+        // Validar que las secciones tengan la estructura correcta
+        const validSections = {};
+        let hasValidContent = false;
+        
+        for (const [sectionKey, section] of Object.entries(projectData.sections)) {
+          if (section && typeof section === 'object' && section.elements && Array.isArray(section.elements)) {
+            validSections[sectionKey] = {
+              ...section,
+              id: section.id || sectionKey,
+              name: section.name || sectionKey,
+              slug: section.slug || sectionKey,
+              isHome: section.isHome || sectionKey === 'home'
+            };
+            hasValidContent = true;
+            console.log(`🔄 Sección "${sectionKey}" válida con ${section.elements.length} elementos`);
+          }
+        }
+        
+        if (!hasValidContent) {
+          showNotification('El archivo no contiene secciones válidas con elementos.', 'error');
+          return;
+        }
+        
+        // Crear un proyecto con los datos importados
+        const importedProject = {
+          name: projectData.name || 'Proyecto Importado',
+          description: projectData.description || 'Proyecto importado desde archivo JSON',
+          sections: validSections,
+          createdAt: projectData.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          tags: projectData.tags || ['importado'],
+          version: projectData.version || '1.0.0',
+          // Mantener metadatos del proyecto actual si existen
+          ...(projectMetadata && {
+            id_sucursal: projectMetadata.id_sucursal,
+            empresa: projectMetadata.empresa,
+            sucursal: projectMetadata.sucursal
+          })
+        };
+        
+        console.log('🔄 Proyecto preparado para importar:', importedProject);
+        
+        // Disparar evento para cargar el proyecto
+        const loadEvent = new CustomEvent('loadProject', {
+          detail: {
+            project: importedProject
+          }
+        });
+        
+        console.log('🔄 Disparando evento loadProject:', loadEvent);
+        window.dispatchEvent(loadEvent);
+        
+        showNotification(`Proyecto "${importedProject.name}" importado exitosamente con ${Object.keys(validSections).length} secciones`, 'success');
+        
+      } catch (error) {
+        console.error('Error al importar JSON:', error);
+        if (error.name === 'SyntaxError') {
+          showNotification('El archivo no es un JSON válido. Verifica el formato del archivo.', 'error');
+        } else {
+          showNotification('Error al leer el archivo: ' + error.message, 'error');
+        }
+      }
+      
+      // Limpiar el input
+      document.body.removeChild(fileInput);
+    };
+    
+    // Agregar el input al DOM y hacer clic en él
+    document.body.appendChild(fileInput);
+    fileInput.click();
   };
 
   const selectedElement = elements && elements.find ? elements.find(el => el.id === selectedElementId) : null;
@@ -752,6 +864,16 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
                 </span>
               </DropdownItem>
               <DropdownItem onClick={() => {
+                handleImportJSON();
+                setExportDropdownOpen(false);
+              }}>
+                <Upload size={16} />
+                Importar JSON
+                <span style={{ fontSize: '12px', opacity: 0.7 }}>
+                  Cargar proyecto existente
+                </span>
+              </DropdownItem>
+              <DropdownItem onClick={() => {
                 const result = autoCleanupOldProjects();
                 showNotification(result.message, result.success ? 'success' : 'error');
                 setExportDropdownOpen(false);
@@ -775,6 +897,23 @@ const Toolbar = ({ isPreviewMode, setIsPreviewMode, onBackToDashboard }) => {
             </DropdownMenu>
           )}
         </div>
+
+        {/* Botón de Importar JSON más visible */}
+        <ToolbarButton
+          onClick={handleImportJSON}
+          title="Importar proyecto desde archivo JSON"
+          style={{
+            background: 'linear-gradient(135deg, #10b981, #047857)',
+            color: '#ffffff',
+            borderColor: '#10b981',
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+            minWidth: '44px'
+          }}
+        >
+          <Upload size={18} />
+        </ToolbarButton>
+
+        <Separator />
 
         <SaveButton onClick={handleSave}>
           <Save size={16} />

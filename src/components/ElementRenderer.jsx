@@ -6,19 +6,22 @@ import CatalogSection from './views/CatalogSection';
 import CarouselComponent from './CarouselComponent';
 import ModernCard from './ModernCard';
 import CardsCarousel from './CardsCarousel';
+import ContactForm from './ContactForm';
+import NewsletterFormComponent from './NewsletterForm';
+import SearchFormComponent from './SearchForm';
 
 const ElementWrapper = styled.div`
   ${props => {
     // Elementos que se pueden mover libremente tienen posición absoluta
-    if (["section", "container", "header", "card", "modernCard", "cardsCarousel", "grid", "columns", "text", "heading", "button", "image", "catalog-section", "carousel"].includes(props.elementType)) {
+    if (["section", "container", "header", "card", "modernCard", "cardsCarousel", "grid", "columns", "text", "heading", "button", "image", "catalog-section", "carousel", "contact-form", "newsletter-form", "search-form", "rectangle", "circle", "triangle"].includes(props.elementType)) {
       return `
         position: absolute;
         left: ${props.position?.x ?? 0}px;
         top: ${props.position?.y ?? 0}px;
         width: ${props.size?.width || 'auto'};
         height: ${props.size?.height || 'auto'};
-        min-width: ${props.elementType === 'section' ? '400px' : props.elementType === 'catalog-section' ? '800px' : props.elementType === 'carousel' ? '600px' : props.elementType === 'modernCard' ? '300px' : props.elementType === 'cardsCarousel' ? '800px' : '100px'};
-        min-height: ${props.elementType === 'section' ? '200px' : props.elementType === 'catalog-section' ? '600px' : props.elementType === 'carousel' ? '300px' : props.elementType === 'modernCard' ? '400px' : props.elementType === 'cardsCarousel' ? '500px' : '30px'};
+        min-width: ${props.elementType === 'section' ? '400px' : props.elementType === 'catalog-section' ? '800px' : props.elementType === 'carousel' ? '600px' : props.elementType === 'modernCard' ? '300px' : props.elementType === 'cardsCarousel' ? '800px' : props.elementType === 'contact-form' ? '600px' : props.elementType === 'newsletter-form' ? '500px' : props.elementType === 'search-form' ? '400px' : props.elementType === 'rectangle' ? '200px' : props.elementType === 'circle' ? '120px' : props.elementType === 'triangle' ? '120px' : '100px'};
+        min-height: ${props.elementType === 'section' ? '200px' : props.elementType === 'catalog-section' ? '600px' : props.elementType === 'carousel' ? '300px' : props.elementType === 'modernCard' ? '400px' : props.elementType === 'cardsCarousel' ? '500px' : props.elementType === 'contact-form' ? '500px' : props.elementType === 'newsletter-form' ? '200px' : props.elementType === 'search-form' ? '60px' : props.elementType === 'rectangle' ? '120px' : props.elementType === 'circle' ? '120px' : props.elementType === 'triangle' ? '100px' : '30px'};
         z-index: ${props.isDragging ? 1000 : props.isSelected ? 100 : 1};
       `;
     } else {
@@ -406,7 +409,7 @@ const ElementRenderer = ({
   const inputRef = useRef(null);
 
   // Determinar si es movible/editable
-  const isMovable = ["section", "container", "header", "columns", "card", "grid", "text", "heading", "button", "image", "catalog-section", "carousel", "cardsCarousel"].includes(element.type);
+  const isMovable = ["section", "container", "header", "columns", "card", "grid", "text", "heading", "button", "image", "catalog-section", "carousel", "cardsCarousel", "rectangle", "circle", "triangle"].includes(element.type);
 
   // Función para calcular snap automático y líneas activas
   const calculateSnapPosition = (newX, newY) => {
@@ -1036,6 +1039,43 @@ const ElementRenderer = ({
             interval={element.props?.interval || 5000}
             showDots={element.props?.showDots !== false}
             showArrows={element.props?.showArrows !== false}
+          />
+        );
+      
+      case 'contact-form':
+        return (
+          <ContactForm 
+            title={element.props?.title}
+            subtitle={element.props?.subtitle}
+            fields={element.props?.fields}
+            submitText={element.props?.submitText}
+            successMessage={element.props?.successMessage}
+            errorMessage={element.props?.errorMessage}
+            styles={element.styles}
+          />
+        );
+      
+      case 'newsletter-form':
+        return (
+          <NewsletterFormComponent 
+            title={element.props?.title}
+            subtitle={element.props?.subtitle}
+            placeholder={element.props?.placeholder}
+            submitText={element.props?.submitText}
+            successMessage={element.props?.successMessage}
+            errorMessage={element.props?.errorMessage}
+            styles={element.styles}
+          />
+        );
+      
+      case 'search-form':
+        return (
+          <SearchFormComponent 
+            placeholder={element.props?.placeholder}
+            submitText={element.props?.submitText}
+            buttonIcon={element.props?.buttonIcon}
+            onSearch={element.props?.onSearch}
+            styles={element.styles}
           />
         );
       

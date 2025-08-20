@@ -1,36 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Save, 
   Download, 
-  Upload, 
   Eye, 
-  Trash2, 
   Edit3, 
   Plus, 
-  Search,
   FolderOpen,
-  Clock,
-  Tag,
-  MoreVertical,
   X,
   Check,
   AlertCircle
 } from 'lucide-react';
-import { 
-  saveProject, 
-  getProjects, 
-  deleteProject, 
-  exportProject, 
-  exportProjectDirect,
-  exportProjectFallback,
-  exportProjectJSON,
-  exportProjectJSONUltra,
-  exportProjectSimple,
-  importProject,
-  createProjectData,
-  searchProjects,
-  getProjectStats
-} from '../../../utils/projectStorage';
+import { exportProjectSimple } from '../../../utils/projectStorage';
 import { useEditor } from '../../../context/EditorContext';
 import { previewWebsite } from '../../../utils/exportUtils.jsx';
 import WebsiteSelectionModal from './WebsiteSelectionModal';
@@ -38,125 +17,67 @@ import APIs from '../../../services/services/APIs';
 import './WebsiteProjectManager.css';
 
 const WebsiteProjectManager = ({ onSwitchToEditor }) => {
-  const { sections } = useEditor();
-  const [projects, setProjects] = useState([]);
+  // ===== ESTADOS =====
   const [serverPages, setServerPages] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSaveModal, setShowSaveModal] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
   const [showWebsiteModal, setShowWebsiteModal] = useState(false);
-  const [saveFormData, setSaveFormData] = useState({ name: '', description: '', tags: '' });
-  const [currentProject, setCurrentProject] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [loadingServerPages, setLoadingServerPages] = useState(false);
-  const [exportingProjects, setExportingProjects] = useState(new Set());
   const [message, setMessage] = useState({ type: '', text: '' });
 
+  // ===== EFECTOS =====
   useEffect(() => {
-    loadProjects();
     loadServerPages();
   }, []);
 
-  const loadProjects = () => {
-    const savedProjects = getProjects();
-    setProjects(savedProjects);
-  };
+  // Efecto para detectar cuando hay scroll disponible
+  useEffect(() => {
+    const checkScrollable = () => {
+      const serverSection = document.querySelector('.server-pages-section');
+      if (serverSection) {
+        const hasScroll = serverSection.scrollHeight > serverSection.clientHeight;
+        serverSection.setAttribute('data-scrollable', hasScroll);
+      }
+    };
 
+    // Verificar después de cargar las páginas
+    const timer = setTimeout(checkScrollable, 100);
+    
+    // Verificar en cambios de tamaño de ventana
+    window.addEventListener('resize', checkScrollable);
+    
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', checkScrollable);
+    };
+  }, [serverPages]);
+
+  // ===== FUNCIONES PRINCIPALES =====
+  
   const loadServerPages = async () => {
     setLoadingServerPages(true);
+    
     try {
-      // Obtener todas las páginas del servidor
-      const response = await APIs.getPage('Pagina MG');
+      const response = await APIs.getPage(3);
       
-      if (response && response.data) {
-        // Parsear el JSON que puede venir doble serializado
-        let sections = {};
-        try {
-          if (response.data.json_original) {
-            // Intentar parsear el JSON que puede estar doble serializado
-            let jsonData = response.data.json_original;
-            if (typeof jsonData === 'string') {
-              jsonData = JSON.parse(jsonData);
-              // Si aún es string, parsearlo una vez más
-              if (typeof jsonData === 'string') {
-                jsonData = JSON.parse(jsonData);
-              }
-            }
-            sections = jsonData;
-          } else if (response.data.contenido) {
-            let jsonData = response.data.contenido;
-            if (typeof jsonData === 'string') {
-              jsonData = JSON.parse(jsonData);
-              if (typeof jsonData === 'string') {
-                jsonData = JSON.parse(jsonData);
-              }
-            }
-            sections = jsonData;
-          }
-        } catch (error) {
-          console.error('Error parsing JSON:', error);
-          sections = {};
-        }
-
-        const pagesData = [{
-          id: `server-${response.data.nombre}`,
-          name: response.data.nombre,
-          description: response.data.descripcion || 'Página del servidor',
-          sections: sections,
-          html_compilado: response.data.html_compilado || '',
-          createdAt: response.data.fecha_creacion,
-          updatedAt: response.data.fecha_actualizacion,
-          tags: ['servidor'],
-          isServerPage: true
-        }];
+      if (response && Array.isArray(response)) {
+        // Procesar array de páginas
+        const pagesData = response.map((page, index) => {
+          const sections = parsePageSections(page, index);
+          return createPageData(page, sections);
+        });
         
         setServerPages(pagesData);
-        console.log('Páginas del servidor cargadas:', pagesData);
+      } else if (response && response.data) {
+        // Caso legacy con .data
+        const sections = parsePageSections(response.data);
+        const pagesData = [createPageData(response.data, sections)];
+        setServerPages(pagesData);
       } else if (response && response.nombre) {
-        // Si la respuesta viene directamente (sin .data)
-        let sections = {};
-        try {
-          if (response.json_original) {
-            let jsonData = response.json_original;
-            if (typeof jsonData === 'string') {
-              jsonData = JSON.parse(jsonData);
-              if (typeof jsonData === 'string') {
-                jsonData = JSON.parse(jsonData);
-              }
-            }
-            sections = jsonData;
-          } else if (response.contenido) {
-            let jsonData = response.contenido;
-            if (typeof jsonData === 'string') {
-              jsonData = JSON.parse(jsonData);
-              if (typeof jsonData === 'string') {
-                jsonData = JSON.parse(jsonData);
-              }
-            }
-            sections = jsonData;
-          }
-        } catch (error) {
-          console.error('Error parsing JSON:', error);
-          sections = {};
-        }
-
-        const pagesData = [{
-          id: `server-${response.nombre}`,
-          name: response.nombre,
-          description: response.descripcion || 'Página del servidor',
-          sections: sections,
-          html_compilado: response.html_compilado || '',
-          createdAt: response.fecha_creacion,
-          updatedAt: response.fecha_actualizacion,
-          tags: ['servidor'],
-          isServerPage: true
-        }];
-        
+        // Caso legacy directo
+        const sections = parsePageSections(response);
+        const pagesData = [createPageData(response, sections)];
         setServerPages(pagesData);
-        console.log('Páginas del servidor cargadas:', pagesData);
       } else {
         setServerPages([]);
-        console.log('No se encontraron páginas en el servidor');
       }
     } catch (error) {
       console.error('Error al cargar páginas del servidor:', error);
@@ -167,135 +88,377 @@ const WebsiteProjectManager = ({ onSwitchToEditor }) => {
     }
   };
 
+  // ===== FUNCIONES AUXILIARES =====
+  
+  const parsePageSections = (page, index = 0) => {
+    try {
+      if (page.json_original) {
+        let jsonData = page.json_original;
+        
+        // Limpiar la serialización múltiple
+        if (typeof jsonData === 'string') {
+          
+          // Paso 1: Eliminar las comillas del inicio y final
+          if (jsonData.startsWith('"') && jsonData.endsWith('"')) {
+            jsonData = jsonData.slice(1, -1);
+          }
+          
+          // Paso 2: Reemplazar todas las \\\\\" por " (para triple serialización)
+          jsonData = jsonData.replace(/\\\\\\"/g, '"');
+          
+          // Paso 3: Reemplazar todas las \\\" por " (para doble serialización)
+          jsonData = jsonData.replace(/\\\\"/g, '"');
+          
+          // Paso 4: Reemplazar todas las \" por " (para serialización simple)
+          jsonData = jsonData.replace(/\\"/g, '"');
+          
+          // Paso 5: Parsear el JSON limpio
+          try {
+            const parsed = JSON.parse(jsonData);
+            
+            // Verificar que la estructura es correcta
+            if (parsed && typeof parsed === 'object' && parsed.home && parsed.home.elements) {
+              return parsed;
+            } else {
+              // Si no tiene la estructura correcta, crear una por defecto
+              return {
+                home: {
+                  id: 'home',
+                  name: 'Inicio',
+                  elements: [],
+                  isHome: true,
+                  slug: 'home'
+                }
+              };
+            }
+          } catch (parseError) {
+            console.error('Error al parsear JSON limpio:', parseError);
+            // En caso de error, crear estructura por defecto
+            return {
+              home: {
+                id: 'home',
+                name: 'Inicio',
+                elements: [],
+                isHome: true,
+                slug: 'home'
+              }
+            };
+          }
+        }
+        
+        return {};
+      } else if (page.contenido) {
+        let jsonData = page.contenido;
+        if (typeof jsonData === 'string') {
+          try {
+            jsonData = JSON.parse(jsonData);
+            if (typeof jsonData === 'string') {
+              jsonData = JSON.parse(jsonData);
+            }
+          } catch (e) {
+            jsonData = {};
+          }
+        }
+        return jsonData;
+      } else {
+        return {};
+      }
+    } catch (error) {
+      console.error('Error parsing JSON for page', index, ':', error);
+      
+      // En caso de error, crear estructura por defecto
+      return {
+        home: {
+          id: 'home',
+          name: 'Inicio',
+          elements: [],
+          isHome: true,
+          slug: 'home'
+        }
+      };
+    }
+  };
+
+  const createPageData = (page, sections) => {
+    // Verificar que sections tenga contenido válido
+    if (!sections || Object.keys(sections).length === 0) {
+      sections = {
+        home: {
+          id: 'home',
+          name: 'Inicio',
+          elements: [],
+          isHome: true,
+          slug: 'home'
+        }
+      };
+    }
+    
+    // Verificar que el nombre no esté vacío - PRIORIDAD: nombre > nombre del archivo
+    let pageName = '';
+    
+    // Primero intentar con el nombre directo
+    if (page.nombre && page.nombre !== '') {
+      pageName = page.nombre;
+    }
+    // Si no hay nombre, intentar con el nombre del archivo (sin extensión)
+    else if (page.nombre && page.nombre.includes('.')) {
+      pageName = page.nombre.split('.')[0]; // Quitar la extensión .html
+    }
+    // Si tampoco hay nombre del archivo, usar el nombre de la sucursal
+    else if (page.sucursal && page.sucursal !== '') {
+      pageName = page.sucursal;
+    }
+    // Último recurso
+    else {
+      pageName = 'Página sin nombre';
+    }
+    
+    const pageData = {
+      id: `server-${page.id}`,
+      name: pageName,
+      description: page.descripcion || page.description || '',
+      sections: sections,
+      html_compilado: page.html_compilado || '',
+      createdAt: page.fecha_creacion || page.createdAt || new Date().toISOString(),
+      updatedAt: page.fecha_actualizacion || page.updatedAt || new Date().toISOString(),
+      tags: ['servidor'],
+      isServerPage: true,
+      empresa: page.empresa || '',
+      sucursal: page.sucursal || '',
+      id_sucursal: page.id_sucursal || null
+    };
+    
+    return pageData;
+  };
+
+  // ===== MANEJADORES DE EVENTOS =====
+  
   const handleWebsiteSelection = (type, template) => {
     setShowWebsiteModal(false);
-    if (onSwitchToEditor) {
+    
+    if (type === 'load-project' && onSwitchToEditor) {
       onSwitchToEditor(type, template);
     }
   };
 
-  const handleSaveProject = async () => {
-    if (!saveFormData.name.trim()) {
-      setMessage({ type: 'error', text: 'El nombre del proyecto es requerido' });
-      return;
-    }
-
-    if (!sections || Object.keys(sections).length === 0) {
-      setMessage({ type: 'error', text: 'No hay contenido en el editor para guardar' });
-      return;
-    }
-
-    setLoading(true);
+  const handleLoadProject = async (project) => {
     try {
-      // Crear datos del proyecto con toda la información actual
-      const projectData = createProjectData(sections, {
-        name: saveFormData.name.trim(),
-        description: saveFormData.description.trim(),
-        tags: saveFormData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        id: currentProject?.id || `project-${Date.now()}`,
-        createdAt: currentProject?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
-
-      console.log('Guardando proyecto:', projectData);
-
-      const result = await saveProject(projectData);
+      setMessage({ type: 'info', text: 'Cargando página completa del servidor...' });
       
-      if (result.success) {
-        setMessage({ type: 'success', text: 'Proyecto guardado exitosamente' });
-        setShowSaveModal(false);
-        setSaveFormData({ name: '', description: '', tags: '' });
-        setCurrentProject(result.project); // Actualizar el proyecto actual
-        loadProjects(); // Recargar la lista
+      if (project.isServerPage && project.id_sucursal) {
+        const response = await APIs.getPageByBranch(project.id_sucursal);
+        
+        if (response && response.json_original) {
+          let sections = {};
+          try {
+            if (response.json_original && response.json_original !== '') {
+              let jsonData = response.json_original;
+              
+              // Limpiar la serialización múltiple
+              if (typeof jsonData === 'string') {
+                
+                // Paso 1: Eliminar las comillas del inicio y final
+                if (jsonData.startsWith('"') && jsonData.endsWith('"')) {
+                  jsonData = jsonData.slice(1, -1);
+                }
+                
+                // Paso 2: Reemplazar todas las \\\\\" por " (para triple serialización)
+                jsonData = jsonData.replace(/\\\\\\"/g, '"');
+                
+                // Paso 3: Reemplazar todas las \\\" por " (para doble serialización)
+                jsonData = jsonData.replace(/\\\\"/g, '"');
+                
+                // Paso 4: Reemplazar todas las \" por " (para serialización simple)
+                jsonData = jsonData.replace(/\\"/g, '"');
+                
+                // Paso 5: Parsear el JSON limpio
+                try {
+                  jsonData = JSON.parse(jsonData);
+                  sections = jsonData;
+                } catch (parseError) {
+                  console.error('❌ Error al parsear JSON limpio:', parseError);
+                  throw parseError;
+                }
+              }
+            } else {
+              sections = {
+                home: {
+                  id: 'home',
+                  name: 'Inicio',
+                  elements: [],
+                  isHome: true,
+                  slug: 'home'
+                }
+              };
+            }
+          } catch (error) {
+            sections = {
+              home: {
+                id: 'home',
+                name: 'Inicio',
+                elements: [],
+                isHome: true,
+                slug: 'home'
+              }
+            };
+          }
+          
+          // Asegurar que todas las secciones tengan la estructura correcta
+          Object.keys(sections).forEach(sectionKey => {
+            if (!sections[sectionKey].elements) {
+              sections[sectionKey].elements = [];
+            }
+            if (!sections[sectionKey].id) {
+              sections[sectionKey].id = sectionKey;
+            }
+            if (!sections[sectionKey].name) {
+              sections[sectionKey].name = sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1);
+            }
+            if (!sections[sectionKey].slug) {
+              sections[sectionKey].slug = sectionKey;
+            }
+          });
+          
+          const updatedProject = {
+            ...project,
+            name: response.nombre || project.name,
+            description: response.descripcion || project.description,
+            sections: sections,
+            html_compilado: response.html_compilado || project.html_compilado,
+            logo: response.logo || '',
+            color_primario: response.color_primario || '',
+            color_secundario: response.color_secundario || '',
+            texto_footer: response.texto_footer || '',
+            empresa: project.empresa,
+            sucursal: project.sucursal,
+            id_sucursal: response.id_sucursal || project.id_sucursal,
+            isServerPage: true,
+            page_id: response.id || null
+          };
+          
+          setMessage({ type: 'success', text: 'Página cargada exitosamente, abriendo editor...' });
+          
+          if (onSwitchToEditor) {
+            onSwitchToEditor('load-project', updatedProject);
+          } else {
+            console.error('❌ onSwitchToEditor no está disponible');
+          }
+        } else {
+          setMessage({ type: 'warning', text: 'No se pudo cargar la página completa, usando datos locales...' });
+          
+          if (onSwitchToEditor) {
+            onSwitchToEditor('load-project', project);
+          } else {
+            console.error('❌ onSwitchToEditor no está disponible');
+          }
+        }
       } else {
-        setMessage({ type: 'error', text: result.error });
+        setMessage({ type: 'info', text: 'Abriendo editor...' });
+        
+        if (onSwitchToEditor) {
+          onSwitchToEditor('load-project', project);
+        } else {
+          console.error('❌ onSwitchToEditor no está disponible');
+        }
       }
     } catch (error) {
-      console.error('Error al guardar:', error);
-      setMessage({ type: 'error', text: 'Error al guardar el proyecto: ' + error.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLoadProject = (project) => {
-    // Actualizar el proyecto actual
-    setCurrentProject(project);
-    
-    if (onSwitchToEditor) {
-      onSwitchToEditor('load-project', project);
+      console.error('Error al cargar la página del servidor:', error);
+      setMessage({ type: 'error', text: 'Error al cargar la página del servidor: ' + error.message });
+      
+      // En caso de error, usar el proyecto original
+      if (onSwitchToEditor) {
+        onSwitchToEditor('load-project', project);
+      } else {
+        console.error('❌ onSwitchToEditor no está disponible');
+      }
     }
   };
 
   const handlePreviewProject = (project) => {
     try {
-      previewWebsite(project.sections);
+      // Usar id_sucursal del proyecto si está disponible
+      const sucursalId = project.id_sucursal || null;
+      previewWebsite(project.sections, sucursalId);
     } catch (error) {
       setMessage({ type: 'error', text: 'Error al generar la vista previa' });
     }
   };
 
   const handleExportProject = async (project) => {
-    setExportingProjects(prev => new Set(prev).add(project.id));
-    
     try {
       if (!project || !project.sections) {
         throw new Error('El proyecto no tiene datos válidos para exportar');
       }
       
       const result = exportProjectSimple(project);
-      
       setMessage({ 
         type: 'success', 
         text: `Proyecto exportado exitosamente como ${result.filename}` 
       });
-      
     } catch (error) {
       setMessage({ type: 'error', text: 'Error al exportar el proyecto: ' + error.message });
-    } finally {
-      setExportingProjects(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(project.id);
-        return newSet;
-      });
     }
   };
 
-  const handleDeleteProject = async (projectId) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este proyecto?')) {
-      const result = await deleteProject(projectId);
-      if (result.success) {
-        setMessage({ type: 'success', text: 'Proyecto eliminado exitosamente' });
-        loadProjects();
-      } else {
-        setMessage({ type: 'error', text: result.error });
-      }
-    }
-  };
-
-  const handleImportProject = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    setLoading(true);
+  const handleSaveProject = async (projectData) => {
     try {
-      const importedProject = await importProject(file);
-      setMessage({ type: 'success', text: 'Proyecto importado exitosamente' });
-      setShowImportModal(false);
-      loadProjects();
+      if (!projectData || !projectData.id_sucursal) {
+        throw new Error('El proyecto no tiene id_sucursal válido para guardar');
+      }
+
+      // Preparar los datos para guardar según la estructura requerida
+      const saveData = {
+        contenido_html: JSON.stringify(projectData.sections || {}), // JSON de las secciones
+        contenido: '', // Enviar vacío
+        nombre: projectData.sucursal || '', // Nombre de la sucursal
+        id_sucursal: projectData.id_sucursal // ID de la sucursal
+      };
+
+      const response = await APIs.savePage(saveData);
+      
+      if (response && response.success) {
+        setMessage({ 
+          type: 'success', 
+          text: 'Página guardada exitosamente en el servidor' 
+        });
+        
+        // Recargar las páginas del servidor para mostrar cambios
+        await loadServerPages();
+      } else {
+        throw new Error('No se pudo guardar la página en el servidor');
+      }
     } catch (error) {
-      setMessage({ type: 'error', text: error.message });
-    } finally {
-      setLoading(false);
+      console.error('Error al guardar la página:', error);
+      setMessage({ type: 'error', text: 'Error al guardar la página: ' + error.message });
     }
   };
 
-  const filteredProjects = searchQuery 
-    ? searchProjects(searchQuery) 
-    : projects;
+  const handleCreateEmptyProject = () => {
+    const emptyProject = {
+      id: `project-${Date.now()}`,
+      name: 'Nuevo Proyecto',
+      description: 'Proyecto vacío',
+      sections: {
+        home: {
+          id: 'home',
+          name: 'Inicio',
+          elements: []
+        }
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: ['nuevo']
+    };
+    
+    if (onSwitchToEditor) {
+      onSwitchToEditor('load-project', emptyProject);
+    } else {
+      console.error('❌ onSwitchToEditor no está disponible');
+    }
+  };
 
-  const stats = getProjectStats();
-
+  // ===== FUNCIONES DE UTILIDAD =====
+  
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
       year: 'numeric',
@@ -306,14 +469,20 @@ const WebsiteProjectManager = ({ onSwitchToEditor }) => {
     });
   };
 
+  const clearMessage = () => setMessage({ type: '', text: '' });
+
+  // ===== RENDERIZADO =====
+  
   return (
     <div className="website-project-manager">
-      {/* Header */}
+      
+      {/* ===== HEADER PRINCIPAL ===== */}
       <div className="project-manager-header">
         <div className="header-left">
           <h2>Mis Proyectos Web</h2>
           <p>Gestiona y organiza tus sitios web</p>
         </div>
+        
         <div className="header-right">
           <button 
             className="create-site-btn" 
@@ -338,128 +507,15 @@ const WebsiteProjectManager = ({ onSwitchToEditor }) => {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="project-stats">
-        <div className="stat-item">
-          <FolderOpen size={16} />
-          <span>{stats.total} proyectos</span>
-        </div>
-        <div className="stat-item">
-          <Clock size={16} />
-          <span>{stats.recentlyUpdated} recientes</span>
-        </div>
-        {currentProject && (
-          <div className="stat-item" style={{ background: '#10b981', color: 'white', padding: '4px 12px', borderRadius: '6px' }}>
-            <Edit3 size={16} />
-            <span>Editando: {currentProject.name}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Search */}
-      <div className="search-section">
-        <div className="search-input">
-          <Search size={16} />
-          <input
-            type="text"
-            placeholder="Buscar proyectos..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Actions */}
+      {/* ===== BARRA DE ACCIONES ===== */}
       <div className="project-actions">
         <button 
-          className={`action-btn ${sections && Object.keys(sections).length > 0 ? 'primary' : 'disabled'}`}
-          onClick={() => {
-            if (sections && Object.keys(sections).length > 0) {
-              setCurrentProject(null);
-              setSaveFormData({ name: '', description: '', tags: '' });
-              setShowSaveModal(true);
-            } else {
-              setMessage({ type: 'error', text: 'No hay contenido en el editor para guardar. Primero crea un sitio web.' });
-            }
-          }}
-          disabled={!sections || Object.keys(sections).length === 0}
-          title={!sections || Object.keys(sections).length === 0 ? 'No hay contenido en el editor para guardar' : 'Guardar proyecto actual'}
-        >
-          <Save size={16} />
-          Guardar Proyecto
-        </button>
-        
-        {/* Botón para actualizar proyecto actual */}
-        {currentProject && (
-          <button 
-            className="action-btn"
-            onClick={() => {
-              if (sections && Object.keys(sections).length > 0) {
-                // Actualizar el proyecto actual sin mostrar modal
-                const updatedProject = {
-                  ...currentProject,
-                  sections: sections,
-                  updatedAt: new Date().toISOString()
-                };
-                
-                saveProject(updatedProject).then(result => {
-                  if (result.success) {
-                    setMessage({ type: 'success', text: 'Proyecto actualizado exitosamente' });
-                    setCurrentProject(result.project);
-                    loadProjects();
-                  } else {
-                    setMessage({ type: 'error', text: 'Error al actualizar: ' + result.error });
-                  }
-                });
-              } else {
-                setMessage({ type: 'error', text: 'No hay contenido para actualizar' });
-              }
-            }}
-            disabled={!sections || Object.keys(sections).length === 0}
-            title="Actualizar el proyecto actual con los cambios del editor"
-            style={{ background: '#10b981', color: 'white', borderColor: '#10b981' }}
-          >
-            <Save size={16} />
-            Actualizar Proyecto
-          </button>
-        )}
-        
-        <button 
           className="action-btn"
-          onClick={() => {
-            // Crear un proyecto vacío y abrirlo en el editor
-            const emptyProject = {
-              id: `project-${Date.now()}`,
-              name: 'Nuevo Proyecto',
-              description: 'Proyecto vacío',
-              sections: {
-                home: {
-                  id: 'home',
-                  name: 'Inicio',
-                  elements: []
-                }
-              },
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              tags: ['nuevo']
-            };
-            
-            if (onSwitchToEditor) {
-              onSwitchToEditor('load-project', emptyProject);
-            }
-          }}
+          onClick={handleCreateEmptyProject}
           title="Crear un proyecto vacío para empezar desde cero"
         >
           <Plus size={16} />
           Crear Proyecto Vacío
-        </button>
-        
-        <button 
-          className="action-btn"
-          onClick={() => setShowImportModal(true)}
-        >
-          <Upload size={16} />
-          Importar
         </button>
         
         <button 
@@ -471,259 +527,152 @@ const WebsiteProjectManager = ({ onSwitchToEditor }) => {
           <FolderOpen size={16} />
           {loadingServerPages ? 'Cargando...' : 'Recargar Servidor'}
         </button>
+        
       </div>
 
-      {/* Projects List */}
+      {/* ===== CONTENIDO PRINCIPAL ===== */}
       <div className="projects-list">
-        {/* Páginas del Servidor */}
-        {serverPages.length > 0 && (
-          <div className="server-pages-section">
-            <h3>Páginas del Servidor</h3>
-            <div className="server-pages-grid">
-              {serverPages.map(page => (
-                <div key={page.id} className="project-card server-page">
-                  <div className="project-info">
-                    <div className="project-thumbnail">
-                      <div className="thumbnail-placeholder server">
-                        <FolderOpen size={24} />
-                      </div>
-                    </div>
-                    <div className="project-details">
-                      <h4>{page.name}</h4>
-                      <p>{page.description || 'Página del servidor'}</p>
-                      <div className="project-meta">
-                        <span className="date">
-                          {formatDate(page.updatedAt)}
-                        </span>
-                        <div className="tags">
-                          <span className="tag server">Servidor</span>
+        
+        {/* ===== SECCIÓN DE PÁGINAS DEL SERVIDOR ===== */}
+        <div className="server-pages-section">
+          
+          {/* Estado de carga */}
+          {loadingServerPages && (
+            <div className="loading-state">
+              <div className="loading-spinner-large"></div>
+              <p>Cargando páginas del servidor...</p>
+            </div>
+          )}
+
+          {/* Lista de páginas */}
+          {!loadingServerPages && serverPages.length > 0 && (
+            <>
+              {/* Mensaje informativo sobre scroll */}
+              {serverPages.length > 6 && (
+                <div className="scroll-info">
+                  <p>📜 {serverPages.length} páginas encontradas - Usa el scroll para ver todas</p>
+                </div>
+              )}
+              
+              <div className="server-pages-grid">
+                {serverPages.map(page => (
+                  <div key={page.id} className="project-card server-page">
+                    
+                    {/* Información del proyecto */}
+                    <div className="project-info">
+                      <div className="project-details">
+                        
+                        {/* Título y descripción */}
+                        <h4 className="project-title">{page.name}</h4>
+                        {page.description && (
+                          <p className="project-description">{page.description}</p>
+                        )}
+                        
+                        {/* Información de Empresa y Sucursal */}
+                        {(page.empresa || page.sucursal) && (
+                          <div className="company-info">
+                            {page.empresa && (
+                              <span className="company-tag">
+                                {page.empresa}
+                              </span>
+                            )}
+                            {page.sucursal && (
+                              <span className="branch-tag">
+                                {page.sucursal}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Meta información */}
+                        <div className="project-meta">
+                          <span className="date">
+                            {formatDate(page.updatedAt)}
+                          </span>
+                          <div className="tags">
+                            <span className="tag server">Servidor</span>
+                          </div>
                         </div>
                       </div>
                     </div>
+                    
+                    {/* Acciones del proyecto */}
+                    <div className="project-actions">
+                      <button 
+                        className="action-icon"
+                        onClick={() => handleLoadProject(page)}
+                        title="Cargar página del servidor"
+                      >
+                        <Edit3 size={16} />
+                      </button>
+                      <button 
+                        className="action-icon"
+                        onClick={() => handlePreviewProject(page)}
+                        title="Vista previa"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button 
+                        className="action-icon"
+                        onClick={() => handleSaveProject(page)}
+                        title="Guardar en servidor"
+                      >
+                        <Check size={16} />
+                      </button>
+                      <button 
+                        className="action-icon"
+                        onClick={() => handleExportProject(page)}
+                        title="Exportar"
+                      >
+                        <Download size={16} />
+                      </button>
+                    </div>
                   </div>
-                  
-                  <div className="project-actions">
-                    <button 
-                      className="action-icon"
-                      onClick={() => handleLoadProject(page)}
-                      title="Cargar página del servidor"
-                    >
-                      <Edit3 size={16} />
-                    </button>
-                    <button 
-                      className="action-icon"
-                      onClick={() => handlePreviewProject(page)}
-                      title="Vista previa"
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button 
-                      className="action-icon"
-                      onClick={() => handleExportProject(page)}
-                      title="Exportar"
-                    >
-                      <Download size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+                ))}
+              </div>
+              
+              {/* Botón de volver arriba cuando hay scroll */}
+              {serverPages.length > 6 && (
+                <button 
+                  className="back-to-top-btn"
+                  onClick={() => {
+                    const serverSection = document.querySelector('.server-pages-section');
+                    if (serverSection) {
+                      serverSection.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }}
+                  title="Volver arriba"
+                >
+                  ↑ Volver arriba
+                </button>
+              )}
+            </>
+          )}
 
-        {/* Proyectos Locales */}
-        <div className="local-projects-section">
-          <h3>Proyectos Locales</h3>
-          {filteredProjects.length === 0 ? (
+          {/* Estado vacío */}
+          {!loadingServerPages && serverPages.length === 0 && (
             <div className="empty-state">
               <FolderOpen size={48} />
-              <h3>No hay proyectos locales</h3>
-              <p>Guarda tu primer proyecto para comenzar</p>
+              <h3>No hay páginas en el servidor</h3>
+              <p>No se encontraron páginas para mostrar</p>
             </div>
-          ) : (
-            filteredProjects.map(project => (
-              <div key={project.id} className="project-card">
-                <div className="project-info">
-                  <div className="project-thumbnail">
-                    {project.thumbnail ? (
-                      <img src={project.thumbnail} alt={project.name} />
-                    ) : (
-                      <div className="thumbnail-placeholder">
-                        <FolderOpen size={24} />
-                      </div>
-                    )}
-                  </div>
-                  <div className="project-details">
-                    <h4>{project.name}</h4>
-                    <p>{project.description || 'Sin descripción'}</p>
-                    <div className="project-meta">
-                      <span className="date">
-                        {formatDate(project.updatedAt)}
-                      </span>
-                      {project.tags.length > 0 && (
-                        <div className="tags">
-                          {project.tags.slice(0, 2).map(tag => (
-                            <span key={tag} className="tag">{tag}</span>
-                          ))}
-                          {project.tags.length > 2 && (
-                            <span className="tag-more">+{project.tags.length - 2}</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="project-actions">
-                  <button 
-                    className="action-icon"
-                    onClick={() => handleLoadProject(project)}
-                    title="Editar proyecto"
-                  >
-                    <Edit3 size={16} />
-                  </button>
-                  <button 
-                    className="action-icon"
-                    onClick={() => handlePreviewProject(project)}
-                    title="Vista previa"
-                  >
-                    <Eye size={16} />
-                  </button>
-                  <button 
-                    className={`action-icon ${exportingProjects.has(project.id) ? 'loading' : ''}`}
-                    onClick={() => handleExportProject(project)}
-                    title={exportingProjects.has(project.id) ? 'Exportando...' : 'Exportar'}
-                    disabled={loading || exportingProjects.has(project.id)}
-                  >
-                    {exportingProjects.has(project.id) ? (
-                      <div className="loading-spinner" />
-                    ) : (
-                      <Download size={16} />
-                    )}
-                  </button>
-                  <button 
-                    className="action-icon danger"
-                    onClick={() => handleDeleteProject(project.id)}
-                    title="Eliminar"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            ))
           )}
         </div>
       </div>
 
-      {/* Save Modal */}
-      {showSaveModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>Guardar Proyecto</h3>
-              <button onClick={() => setShowSaveModal(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="modal-content">
-              <div className="form-group">
-                <label>Nombre del proyecto *</label>
-                <input
-                  type="text"
-                  value={saveFormData.name}
-                  onChange={(e) => setSaveFormData({...saveFormData, name: e.target.value})}
-                  placeholder="Mi sitio web"
-                />
-              </div>
-              <div className="form-group">
-                <label>Descripción</label>
-                <textarea
-                  value={saveFormData.description}
-                  onChange={(e) => setSaveFormData({...saveFormData, description: e.target.value})}
-                  placeholder="Describe tu proyecto..."
-                  rows={3}
-                />
-              </div>
-              <div className="form-group">
-                <label>Etiquetas (separadas por comas)</label>
-                <input
-                  type="text"
-                  value={saveFormData.tags}
-                  onChange={(e) => setSaveFormData({...saveFormData, tags: e.target.value})}
-                  placeholder="negocio, portfolio, tienda"
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button 
-                className="btn-secondary"
-                onClick={() => setShowSaveModal(false)}
-              >
-                Cancelar
-              </button>
-              <button 
-                className="btn-primary"
-                onClick={handleSaveProject}
-                disabled={loading}
-              >
-                {loading ? 'Guardando...' : 'Guardar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Import Modal */}
-      {showImportModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>Importar Proyecto</h3>
-              <button onClick={() => setShowImportModal(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="modal-content">
-              <div className="import-area">
-                <Upload size={48} />
-                <p>Arrastra un archivo .json aquí o haz clic para seleccionar</p>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleImportProject}
-                  style={{ display: 'none' }}
-                  id="import-file"
-                />
-                <label htmlFor="import-file" className="btn-primary">
-                  Seleccionar archivo
-                </label>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button 
-                className="btn-secondary"
-                onClick={() => setShowImportModal(false)}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Website Selection Modal */}
+      {/* ===== MODALES ===== */}
       <WebsiteSelectionModal
         isOpen={showWebsiteModal}
         onClose={() => setShowWebsiteModal(false)}
         onSelectOption={handleWebsiteSelection}
       />
 
-      {/* Message */}
+      {/* ===== MENSAJES DEL SISTEMA ===== */}
       {message.text && (
         <div className={`message ${message.type}`}>
           {message.type === 'success' ? <Check size={16} /> : <AlertCircle size={16} />}
           <span>{message.text}</span>
-          <button onClick={() => setMessage({ type: '', text: '' })}>
+          <button onClick={clearMessage}>
             <X size={16} />
           </button>
         </div>
@@ -732,4 +681,4 @@ const WebsiteProjectManager = ({ onSwitchToEditor }) => {
   );
 };
 
-export default WebsiteProjectManager; 
+export default WebsiteProjectManager;

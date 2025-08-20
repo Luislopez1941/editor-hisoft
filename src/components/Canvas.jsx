@@ -15,7 +15,6 @@ const CanvasContainer = styled.div`
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
-  padding: 20px;
   height: 100%;
   min-height: 0;
 `;
@@ -25,7 +24,7 @@ const SectionIndicator = styled.div`
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 12px 20px;
-  margin-bottom: 20px;
+  margin: 20px 20px 20px 20px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
@@ -42,7 +41,7 @@ const SectionIcon = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: ${props => props.isHome ? 'linear-gradient(135deg, #10b981, #047857)' : 'linear-gradient(135deg, #3b82f6, #1d4ed8)'};
+  background: ${props => props.$isHome ? 'linear-gradient(135deg, #10b981, #047857)' : 'linear-gradient(135deg, #3b82f6, #1d4ed8)'};
   color: white;
 `;
 
@@ -80,14 +79,14 @@ const CanvasArea = styled.div`
   border-radius: 16px;
   position: relative;
   transform-origin: center;
-  transform: scale(${props => props.zoom / 100});
+  transform: scale(${props => props.$zoom / 100});
   transition: transform 0.3s ease;
   width: 1450px;
   min-width: 1450px;
   max-width: 1450px;
   height: ${props => props.height}px;
   border: 1px solid #e5e7eb;
-  margin-bottom: 40px;
+  margin-top: 20px;
   margin-left: auto;
   margin-right: auto;
 `;
@@ -246,12 +245,16 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
           const x = e.clientX - canvasRect.left;
           const y = e.clientY - canvasRect.top;
           
+          // Permitir posiciones en y: 0, pero evitar posiciones negativas
+          const finalX = Math.max(0, x - 50);
+          const finalY = Math.max(0, y - 25);
+          
           addElement(
             element.type,
             element.props || {},
             element.children || [],
             element.styles || {},
-            { x: Math.max(0, x - 50), y: Math.max(0, y - 25) },
+            { x: finalX, y: finalY },
             element.size || { width: 'auto', height: 'auto' }
           );
         }
@@ -333,7 +336,7 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
                     moved = true;
                     break;
                   case 'ArrowRight':
-                    newX = Math.min(canvasWidth - (parseInt(selectedElement.size?.width) || 100), currentX + 10);
+                    newX = Math.min(canvasWidth - (parseInt(selectedElement.size?.width) || 100), currentX + 50);
                     moved = true;
                     break;
                   case 'ArrowUp':
@@ -341,7 +344,7 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
                     moved = true;
                     break;
                   case 'ArrowDown':
-                    newY = Math.min(canvasHeight - (parseInt(selectedElement.size?.height) || 100), currentY + 10);
+                    newY = Math.min(canvasHeight - (parseInt(selectedElement.size?.height) || 100), currentY + 50);
                     moved = true;
                     break;
                 }
@@ -380,7 +383,7 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
       {/* Indicador de sección actual */}
       {currentSection && (
         <SectionIndicator>
-          <SectionIcon isHome={currentSection.isHome}>
+          <SectionIcon $isHome={currentSection.isHome}>
             {currentSection.isHome ? <Home size={16} /> : <Globe size={16} />}
           </SectionIcon>
           <SectionInfo>
@@ -396,7 +399,7 @@ const Canvas = ({ isPreviewMode, selectedElement, setSelectedElement }) => {
       <CanvasWrapper>
         <CanvasArea 
           ref={canvasRef}
-          zoom={zoom}
+          $zoom={zoom}
           height={canvasHeight}
           style={{ backgroundColor: canvasBackground }}
           onDrop={handleDrop}

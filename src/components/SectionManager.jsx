@@ -86,12 +86,12 @@ const SectionItem = styled.div`
   padding: 12px 20px;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: ${props => props.active ? 'linear-gradient(135deg, #eff6ff, #dbeafe)' : 'transparent'};
-  border-left: 3px solid ${props => props.active ? '#3b82f6' : 'transparent'};
+  background: ${props => props.$active ? 'linear-gradient(135deg, #eff6ff, #dbeafe)' : 'transparent'};
+  border-left: 3px solid ${props => props.$active ? '#3b82f6' : 'transparent'};
   position: relative;
   
   &:hover {
-    background: ${props => props.active ? 'linear-gradient(135deg, #eff6ff, #dbeafe)' : '#f8fafc'};
+    background: ${props => props.$active ? 'linear-gradient(135deg, #eff6ff, #dbeafe)' : '#f8fafc'};
   }
 `;
 
@@ -103,7 +103,7 @@ const SectionIcon = styled.div`
   align-items: center;
   justify-content: center;
   margin-right: 12px;
-  background: ${props => props.isHome ? 'linear-gradient(135deg, #10b981, #047857)' : 'linear-gradient(135deg, #3b82f6, #1d4ed8)'};
+  background: ${props => props.$isHome ? 'linear-gradient(135deg, #10b981, #047857)' : 'linear-gradient(135deg, #3b82f6, #1d4ed8)'};
   color: white;
 `;
 
@@ -358,10 +358,10 @@ const SectionManager = () => {
           {Object.values(sections).map((section) => (
             <SectionItem
               key={section.id}
-              active={section.id === activeSectionId}
+              $active={section.id === activeSectionId}
               onClick={() => setActiveSection(section.id)}
             >
-              <SectionIcon isHome={section.isHome}>
+              <SectionIcon $isHome={section.isHome}>
                 {section.isHome ? <Home size={16} /> : <Globe size={16} />}
               </SectionIcon>
               <SectionInfo>

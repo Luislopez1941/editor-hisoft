@@ -166,7 +166,7 @@ const WebsiteSelectionModal = ({ isOpen, onClose, onSelectOption, editPageId = n
           setIsLoading(true);
           
           const data = {
-            id_sucursal: selectedSucursal,
+            id_sucursal: parseInt(selectedSucursal),
             nombre: '', // Eliminado el campo nombre
             direccion_ftp: ftpData.direccionFtp,
             usuario: ftpData.usuario,
